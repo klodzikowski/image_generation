@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How AI Generates Images — Interactive Demo</title>
+<style>
+  :root {
+    --blue: #2563eb; --blue-light: #eff6ff; --blue-border: #bfdbfe;
+    --purple: #7c3aed; --purple-light: #faf5ff; --purple-border: #ddd6fe;
+    --green: #16a34a; --green-light: #f0fdf4; --green-border: #bbf7d0;
+    --orange: #ea580c; --orange-light: #fff7ed; --orange-border: #fed7aa;
+    --text: #1e293b; --muted: #64748b; --surface: #f8fafc;
+    --border: #e2e8f0; --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); background: #f1f5f9; line-height: 1.6; }
+
+  .header { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white; padding: 2.5rem 2rem 2rem; text-align: center; }
+  .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .header p { color: #94a3b8; font-size: 1rem; max-width: 600px; margin: 0 auto; }
+
+  .tabs { display: flex; justify-content: center; gap: 0.5rem; padding: 1.5rem 1rem 0; flex-wrap: wrap; }
+  .tab { padding: 0.7rem 1.5rem; border: 2px solid var(--border); border-radius: 999px; background: white; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
+  .tab:hover { border-color: var(--blue); color: var(--blue); }
+  .tab.active-diff { border-color: var(--blue); background: var(--blue); color: white; }
+  .tab.active-ar { border-color: var(--purple); background: var(--purple); color: white; }
+  .tab.active-hybrid { border-color: var(--green); background: var(--green); color: white; }
+  .tab.active-compare { border-color: var(--orange); background: var(--orange); color: white; }
+
+  .panel { display: none; max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem 3rem; }
+  .panel.visible { display: block; }
+
+  .card { background: white; border-radius: var(--radius); padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--border); }
+  .card h2 { font-size: 1.4rem; margin-bottom: 0.3rem; }
+  .card h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem; }
+  .card p, .card li { color: #475569; font-size: 0.95rem; }
+  .card ul { padding-left: 1.2rem; margin: 0.5rem 0; }
+
+  .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; margin-left: 0.5rem; vertical-align: middle; }
+  .badge-blue { background: var(--blue-light); color: var(--blue); }
+  .badge-purple { background: var(--purple-light); color: var(--purple); }
+  .badge-green { background: var(--green-light); color: var(--green); }
+
+  /* ── Canvas area ── */
+  .demo-area { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin: 1rem 0; text-align: center; }
+  .demo-area canvas { border-radius: 8px; image-rendering: pixelated; }
+
+  .controls { display: flex; gap: 0.8rem; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
+  .btn { padding: 0.55rem 1.2rem; border: none; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; }
+  .btn-blue { background: var(--blue); color: white; }
+  .btn-blue:hover { background: #1d4ed8; }
+  .btn-purple { background: var(--purple); color: white; }
+  .btn-purple:hover { background: #6d28d9; }
+  .btn-green { background: var(--green); color: white; }
+  .btn-green:hover { background: #15803d; }
+  .btn-outline { background: white; border: 2px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--blue); }
+  .btn:disabled { opacity: 0.5; cursor: default; }
+
+  .slider-group { display: flex; align-items: center; gap: 0.5rem; }
+  .slider-group label { font-size: 0.85rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  input[type="range"] { width: 120px; }
+
+  .step-label { font-size: 1rem; font-weight: 700; color: var(--text); min-width: 160px; }
+
+  .insight { background: var(--blue-light); border-left: 4px solid var(--blue); padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin: 1rem 0; font-size: 0.9rem; color: #1e40af; }
+  .insight strong { color: var(--blue); }
+  .insight-purple { background: var(--purple-light); border-left-color: var(--purple); color: #5b21b6; }
+  .insight-purple strong { color: var(--purple); }
+  .insight-green { background: var(--green-light); border-left-color: var(--green); color: #166534; }
+  .insight-green strong { color: var(--green); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .timeline { display: flex; align-items: center; gap: 0.3rem; justify-content: center; margin: 1rem 0; flex-wrap: wrap; }
+  .timeline .token { width: 38px; height: 38px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: white; transition: all 0.3s; }
+  .timeline .arrow { color: var(--muted); font-size: 0.9rem; }
+
+  .compare-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; }
+  @media (max-width: 700px) { .compare-row { grid-template-columns: 1fr; } }
+  .compare-cell { text-align: center; padding: 1rem; border-radius: var(--radius); }
+  .compare-cell canvas { margin: 0.5rem auto; display: block; border-radius: 6px; }
+  .compare-cell h4 { font-size: 0.95rem; margin-bottom: 0.3rem; }
+  .compare-cell p { font-size: 0.8rem; color: var(--muted); }
+
+  .ext-link { display: inline-block; margin-top: 0.5rem; color: var(--blue); font-weight: 600; text-decoration: none; font-size: 0.9rem; }
+  .ext-link:hover { text-decoration: underline; }
+
+  select { padding: 0.4rem 0.8rem; border-radius: 6px; border: 2px solid var(--border); font-size: 0.85rem; background: white; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>How AI Generates Images</h1>
+  <p>Interactive demos of the three generation paradigms. Play with each to build intuition for how they work.</p>
+</div>
+
+<div class="tabs">
+  <div class="tab active-diff" onclick="showPanel('diff')" id="tab-diff">Diffusion</div>
+  <div class="tab" onclick="showPanel('ar')" id="tab-ar">Autoregressive</div>
+  <div class="tab" onclick="showPanel('hybrid')" id="tab-hybrid">Hybrid / Transfusion</div>
+  <div class="tab" onclick="showPanel('compare')" id="tab-compare">Compare All Three</div>
+</div>
+
+<!-- ═══════════════════════════════════ DIFFUSION ═══════════════════════════════════ -->
+<div class="panel visible" id="panel-diff">
+  <div class="card">
+    <h2>Diffusion: Learning to Denoise <span class="badge badge-blue">Most Mature</span></h2>
+    <p>A diffusion model starts from pure random noise and iteratively removes it, guided by the text prompt. Each step makes the image a little cleaner. Watch it happen:</p>
+
+    <div class="demo-area">
+      <canvas id="diffCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
+      <div class="step-label" id="diffStepLabel">Step 0 / 50 — Pure noise</div>
+      <div class="controls">
+        <select id="diffSubject">
+          <option value="cat">A cat on a rainbow</option>
+          <option value="city">A futuristic city</option>
+          <option value="mountain">Mountain landscape</option>
+          <option value="face">Abstract face</option>
+        </select>
+        <button class="btn btn-blue" id="diffPlayBtn" onclick="diffPlay()">&#9654; Generate</button>
+        <button class="btn btn-outline" onclick="diffReset()">Reset</button>
+        <div class="slider-group">
+          <label>Speed</label>
+          <input type="range" min="1" max="10" value="5" id="diffSpeed">
+        </div>
+      </div>
+    </div>
+
+    <div class="insight">
+      <strong>Key insight:</strong> The model doesn't "draw" the image. It starts with noise and <em>removes</em> it step by step. Early steps establish layout & colour; later steps add texture & fine detail. This is why you can stop early and get a blurry but recognisable image.
+    </div>
+
+    <h3>What's happening at each step?</h3>
+    <p>The neural network (a U-Net or Transformer) looks at the current noisy image + the text prompt and predicts "what noise is present." That predicted noise is subtracted, producing a slightly cleaner image. Repeat 10–50 times.</p>
+
+    <h3>Try these external demos</h3>
+    <a class="ext-link" href="https://poloclub.github.io/diffusion-explainer/" target="_blank">Diffusion Explainer (Georgia Tech) — interactive Stable Diffusion walkthrough &rarr;</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ AUTOREGRESSIVE ═══════════════════════════════════ -->
+<div class="panel" id="panel-ar">
+  <div class="card">
+    <h2>Autoregressive: Treating Images as Language <span class="badge badge-purple">Fastest-improving</span></h2>
+    <p>Autoregressive models tokenise the image (like words) and predict tokens sequentially. But <strong>"sequential" doesn't mean pixel-by-pixel</strong>. Toggle between the two approaches:</p>
+
+    <div class="controls" style="margin-bottom:0.5rem;">
+      <button class="btn btn-purple" id="arModeA" onclick="arSetMode('raster')" style="opacity:0.5">A. Raster Scan (obsolete)</button>
+      <button class="btn btn-purple" id="arModeB" onclick="arSetMode('var')">B. Next-Scale / VAR (modern)</button>
+    </div>
+
+    <div class="demo-area">
+      <canvas id="arCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
+      <div class="step-label" id="arStepLabel">Select a mode above, then press Generate</div>
+      <div class="controls">
+        <select id="arSubject">
+          <option value="cat">A cat on a rainbow</option>
+          <option value="city">A futuristic city</option>
+          <option value="mountain">Mountain landscape</option>
+          <option value="face">Abstract face</option>
+        </select>
+        <button class="btn btn-purple" id="arPlayBtn" onclick="arPlay()">&#9654; Generate</button>
+        <button class="btn btn-outline" onclick="arReset()">Reset</button>
+        <div class="slider-group">
+          <label>Speed</label>
+          <input type="range" min="1" max="10" value="5" id="arSpeed">
+        </div>
+      </div>
+    </div>
+
+    <div id="arInsightRaster" class="insight insight-purple" style="display:none;">
+      <strong>Raster scan (DALL·E 1, 2021):</strong> Tokens are predicted one by one, left-to-right, top-to-bottom — like typing a letter. This is slow (1,024 sequential steps) and produces poor spatial coherence because the model can't "see" what's below or to the right. <strong>This approach is obsolete.</strong>
+    </div>
+
+    <div id="arInsightVar" class="insight insight-purple">
+      <strong>Next-Scale / VAR (NeurIPS 2024 Best Paper):</strong> The model generates a tiny 1×1 thumbnail first, then 2×2, then 4×4… up to full resolution. At each scale, <em>all tokens are generated in parallel</em>. Only ~10 autoregressive steps total (scale→scale), not 1,024. It's like a painter sketching the rough composition first, then adding detail. <strong>20× faster than diffusion.</strong>
+    </div>
+
+    <h3>Try the real thing</h3>
+    <a class="ext-link" href="https://var.vision/demo" target="_blank">VAR interactive demo — generate images with next-scale prediction &rarr;</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ HYBRID ═══════════════════════════════════ -->
+<div class="panel" id="panel-hybrid">
+  <div class="card">
+    <h2>Hybrid / Transfusion <span class="badge badge-green">Dominant approach (2025+)</span></h2>
+    <p>The approach behind GPT-4o and Google's Nano Banana. Text is generated autoregressively (token by token). But when the model decides to produce an image, it generates <strong>all image patches simultaneously via diffusion</strong>.</p>
+
+    <div class="demo-area">
+      <div class="timeline" id="hybridTimeline"></div>
+      <canvas id="hybridCanvas" width="256" height="256" style="width:256px;height:256px;margin-top:1rem;"></canvas>
+      <div class="step-label" id="hybridStepLabel">Press Generate to see the full pipeline</div>
+      <div class="controls">
+        <select id="hybridSubject">
+          <option value="cat">Draw a cat on a rainbow</option>
+          <option value="city">Show me a futuristic city</option>
+          <option value="mountain">Create a mountain landscape</option>
+        </select>
+        <button class="btn btn-green" id="hybridPlayBtn" onclick="hybridPlay()">&#9654; Generate</button>
+        <button class="btn btn-outline" onclick="hybridReset()">Reset</button>
+        <div class="slider-group">
+          <label>Speed</label>
+          <input type="range" min="1" max="10" value="5" id="hybridSpeed">
+        </div>
+      </div>
+    </div>
+
+    <div class="insight insight-green">
+      <strong>What's "autoregressive" here?</strong> The <em>decision</em> to create an image and the surrounding text are autoregressive: "Draw" → "a" → "cat" → BOI → [image] → EOI → "Here's your cat…". But the image itself is generated via parallel diffusion on all patches at once — like a Polaroid developing. The AR framework is the <em>scaffolding</em>; diffusion is the <em>brush</em>.
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ COMPARE ═══════════════════════════════════ -->
+<div class="panel" id="panel-compare">
+  <div class="card">
+    <h2>Side-by-Side Comparison</h2>
+    <p>Watch all three approaches generate the same image simultaneously. Notice how differently the image "appears":</p>
+
+    <div class="controls" style="margin-bottom:1rem;">
+      <select id="compareSubject">
+        <option value="cat">A cat on a rainbow</option>
+        <option value="city">A futuristic city</option>
+        <option value="mountain">Mountain landscape</option>
+        <option value="face">Abstract face</option>
+      </select>
+      <button class="btn btn-blue" id="comparePlayBtn" onclick="comparePlay()">&#9654; Generate All</button>
+      <button class="btn btn-outline" onclick="compareReset()">Reset</button>
+      <div class="slider-group">
+        <label>Speed</label>
+        <input type="range" min="1" max="10" value="5" id="compareSpeed">
+      </div>
+    </div>
+
+    <div class="compare-row">
+      <div class="compare-cell" style="background:var(--blue-light);">
+        <h4 style="color:var(--blue);">Diffusion</h4>
+        <canvas id="cmpDiffCanvas" width="192" height="192" style="width:192px;height:192px;"></canvas>
+        <div class="step-label" id="cmpDiffLabel" style="font-size:0.8rem;min-width:auto;">—</div>
+        <p>Emerges from noise everywhere at once</p>
+      </div>
+      <div class="compare-cell" style="background:var(--purple-light);">
+        <h4 style="color:var(--purple);">AR (Next-Scale)</h4>
+        <canvas id="cmpArCanvas" width="192" height="192" style="width:192px;height:192px;"></canvas>
+        <div class="step-label" id="cmpArLabel" style="font-size:0.8rem;min-width:auto;">—</div>
+        <p>Coarse → fine, scale by scale</p>
+      </div>
+      <div class="compare-cell" style="background:var(--green-light);">
+        <h4 style="color:var(--green);">Hybrid</h4>
+        <canvas id="cmpHybCanvas" width="192" height="192" style="width:192px;height:192px;"></canvas>
+        <div class="step-label" id="cmpHybLabel" style="font-size:0.8rem;min-width:auto;">—</div>
+        <p>Text first, then image appears all at once</p>
+      </div>
+    </div>
+
+    <div class="insight">
+      <strong>The key takeaway:</strong> "Autoregressive image generation" does <em>not</em> mean the image appears pixel by pixel like a typewriter. Only the obsolete raster-scan approach (DALL·E 1) worked that way. Modern AR models generate coarse-to-fine (VAR) or use diffusion for the actual pixels (Transfusion/GPT-4o).
+    </div>
+  </div>
+</div>
+
+<div style="text-align:center; padding:1rem; color:var(--muted); font-size:0.8rem;">
+  LMT AI Course · Image Generation Demo · These are <em>simulated</em> visualisations showing how each approach builds up an image.
+  <br>Try the real models: <a href="https://poloclub.github.io/diffusion-explainer/" target="_blank">Diffusion Explainer</a> · <a href="https://var.vision/demo" target="_blank">VAR Demo</a> · <a href="https://chatgpt.com" target="_blank">GPT-4o (ChatGPT)</a>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// IMAGE DATA — Pre-baked "target" images as pixel data
+// We create simple procedural images to simulate generation
+// ═══════════════════════════════════════════
+
+function makeTargetImage(subject, size) {
+  // Returns a Uint8ClampedArray of RGBA pixels for a target image
+  const data = new Uint8ClampedArray(size * size * 4);
+  const S = size;
+
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const i = (y * S + x) * 4;
+      const nx = x / S, ny = y / S;
+      let r, g, b;
+
+      if (subject === 'cat') {
+        // Rainbow background + dark cat silhouette
+        const hue = nx * 360;
+        const rainbow = hslToRgb(hue, 0.8, 0.65 + 0.15 * Math.sin(ny * Math.PI));
+        // Cat shape: oval body + head + ears
+        const cx = 0.5, cy = 0.55;
+        const dx = nx - cx, dy = ny - cy;
+        const bodyDist = (dx * dx) / (0.12) + ((dy) * (dy)) / (0.08);
+        const headDx = nx - 0.5, headDy = ny - 0.32;
+        const headDist = (headDx * headDx + headDy * headDy) / 0.018;
+        // Ears
+        const ear1Dx = nx - 0.38, ear1Dy = ny - 0.2;
+        const ear1 = (ear1Dx * ear1Dx + ear1Dy * ear1Dy) < 0.006;
+        const ear2Dx = nx - 0.62, ear2Dy = ny - 0.2;
+        const ear2 = (ear2Dx * ear2Dx + ear2Dy * ear2Dy) < 0.006;
+        const isCat = bodyDist < 1 || headDist < 1 || ear1 || ear2;
+        // Eyes
+        const eye1 = Math.hypot(nx - 0.44, ny - 0.30) < 0.025;
+        const eye2 = Math.hypot(nx - 0.56, ny - 0.30) < 0.025;
+        if (eye1 || eye2) { r = 80; g = 220; b = 80; }
+        else if (isCat) { r = 45; g = 42; b = 50; }
+        else { r = rainbow[0]; g = rainbow[1]; b = rainbow[2]; }
+      }
+      else if (subject === 'city') {
+        // Sky gradient + buildings
+        const skyR = 20 + 40 * ny, skyG = 10 + 30 * ny, skyB = 80 + 120 * (1 - ny);
+        // Stars
+        const starSeed = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+        const star = (starSeed - Math.floor(starSeed)) > 0.997 && ny < 0.5;
+        // Buildings
+        const bx = (x % 32);
+        const buildingH = [0.3, 0.55, 0.7, 0.4, 0.8, 0.35, 0.6, 0.45][(Math.floor(x / 32)) % 8];
+        const isBuilding = ny > (1 - buildingH) && bx > 2 && bx < 30;
+        const isWindow = isBuilding && (bx % 8 > 2 && bx % 8 < 6) && (y % 12 > 2 && y % 12 < 8);
+        if (star) { r = 255; g = 255; b = 240; }
+        else if (isWindow) { r = 255; g = 220; b = 60; }
+        else if (isBuilding) { r = 30 + (bx > 15 ? 15 : 0); g = 32; b = 45; }
+        else { r = skyR; g = skyG; b = skyB; }
+      }
+      else if (subject === 'mountain') {
+        // Sky + mountains + lake
+        const skyFrac = ny < 0.45 ? 1 : 0;
+        // Mountain 1
+        const m1 = 0.45 - 0.25 * Math.exp(-((nx - 0.35) ** 2) / 0.02) - 0.15 * Math.exp(-((nx - 0.65) ** 2) / 0.03);
+        const m2 = 0.5 - 0.18 * Math.exp(-((nx - 0.5) ** 2) / 0.05);
+        const isMtn1 = ny > m1 && ny < 0.6;
+        const isMtn2 = ny > m2 && ny < 0.6;
+        const isSnow = isMtn1 && ny < m1 + 0.04;
+        const isLake = ny >= 0.6;
+        if (isSnow) { r = 240; g = 245; b = 255; }
+        else if (isMtn1) { r = 60 + 20 * ny; g = 75 + 15 * ny; b = 90; }
+        else if (isMtn2) { r = 80; g = 100; b = 110; }
+        else if (isLake) {
+          const reflect = 0.3 + 0.1 * Math.sin(nx * 40 + ny * 20);
+          r = 30 * reflect; g = 80 * reflect + 40; b = 160 * reflect + 40;
+        }
+        else {
+          // Sky gradient
+          const t = ny / 0.45;
+          r = 135 + 100 * t; g = 180 + 60 * t; b = 255;
+        }
+      }
+      else { // face — abstract
+        const cx = 0.5, cy = 0.45;
+        const dist = Math.hypot(nx - cx, ny - cy);
+        const angle = Math.atan2(ny - cy, nx - cx);
+        const faceDist = dist / (0.35 + 0.02 * Math.sin(angle * 5));
+        if (faceDist < 1) {
+          const skin = [240, 200, 170];
+          const eye1 = Math.hypot(nx - 0.4, ny - 0.38) < 0.035;
+          const eye2 = Math.hypot(nx - 0.6, ny - 0.38) < 0.035;
+          const pupil1 = Math.hypot(nx - 0.4, ny - 0.38) < 0.015;
+          const pupil2 = Math.hypot(nx - 0.6, ny - 0.38) < 0.015;
+          const nose = Math.hypot(nx - 0.5, ny - 0.48) < 0.02;
+          const mouth = ny > 0.55 && ny < 0.58 && Math.abs(nx - 0.5) < 0.08 * (1 - ((ny - 0.565) * 10) ** 2);
+          if (pupil1 || pupil2) { r = 30; g = 30; b = 30; }
+          else if (eye1 || eye2) { r = 240; g = 240; b = 250; }
+          else if (nose) { r = 210; g = 170; b = 140; }
+          else if (mouth) { r = 180; g = 80; b = 80; }
+          else { r = skin[0] - 15 * dist; g = skin[1] - 10 * dist; b = skin[2] - 5 * dist; }
+        } else {
+          // Abstract BG
+          r = 120 + 80 * Math.sin(nx * 6); g = 100 + 60 * Math.cos(ny * 5); b = 180 + 40 * Math.sin((nx + ny) * 4);
+        }
+      }
+      data[i] = clamp(r); data[i+1] = clamp(g); data[i+2] = clamp(b); data[i+3] = 255;
+    }
+  }
+  return data;
+}
+
+function hslToRgb(h, s, l) {
+  h /= 360; const a = s * Math.min(l, 1 - l);
+  const f = n => { const k = (n + h * 12) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return [Math.round(f(0) * 255), Math.round(f(8) * 255), Math.round(f(4) * 255)];
+}
+function clamp(v) { return Math.max(0, Math.min(255, Math.round(v))); }
+
+// ═══════════════════════════════════════════
+// NOISE UTILITIES
+// ═══════════════════════════════════════════
+function gaussianNoise() {
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function makeNoise(size) {
+  const data = new Uint8ClampedArray(size * size * 4);
+  for (let i = 0; i < size * size; i++) {
+    const c = clamp(128 + gaussianNoise() * 60);
+    data[i*4] = c; data[i*4+1] = c; data[i*4+2] = c; data[i*4+3] = 255;
+  }
+  return data;
+}
+
+function blendPixels(noise, target, t, size) {
+  // t=0 → noise, t=1 → target
+  const out = new Uint8ClampedArray(size * size * 4);
+  for (let i = 0; i < size * size * 4; i++) {
+    out[i] = clamp(noise[i] * (1 - t) + target[i] * t);
+  }
+  return out;
+}
+
+function drawPixels(canvas, data, size) {
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(size, size);
+  img.data.set(data);
+  ctx.putImageData(img, 0, 0);
+}
+
+// ═══════════════════════════════════════════
+// PANEL SWITCHING
+// ═══════════════════════════════════════════
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('visible'));
+  document.querySelectorAll('.tab').forEach(t => { t.className = 'tab'; });
+  document.getElementById('panel-' + id).classList.add('visible');
+  document.getElementById('tab-' + id).classList.add('active-' + id);
+}
+
+// ═══════════════════════════════════════════
+// DIFFUSION DEMO
+// ═══════════════════════════════════════════
+let diffAnim = null;
+function diffReset() {
+  if (diffAnim) cancelAnimationFrame(diffAnim);
+  diffAnim = null;
+  const canvas = document.getElementById('diffCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 256, 256);
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fillRect(0, 0, 256, 256);
+  document.getElementById('diffStepLabel').textContent = 'Step 0 / 50 — Press Generate';
+  document.getElementById('diffPlayBtn').disabled = false;
+}
+
+function diffPlay() {
+  if (diffAnim) return;
+  document.getElementById('diffPlayBtn').disabled = true;
+  const SIZE = 256;
+  const canvas = document.getElementById('diffCanvas');
+  const subject = document.getElementById('diffSubject').value;
+  const target = makeTargetImage(subject, SIZE);
+  const noise = makeNoise(SIZE);
+  const TOTAL = 50;
+  let step = 0;
+
+  function tick() {
+    const speed = parseInt(document.getElementById('diffSpeed').value);
+    step += speed * 0.15;
+    if (step > TOTAL) step = TOTAL;
+    const t = step / TOTAL;
+    // Non-linear: structure emerges fast, detail slow (like real diffusion)
+    const tEased = 1 - Math.pow(1 - t, 2.5);
+    const frame = blendPixels(noise, target, tEased, SIZE);
+    drawPixels(canvas, frame, SIZE);
+
+    const s = Math.round(step);
+    let desc = 'Pure noise';
+    if (s > 0 && s <= 10) desc = 'Layout & colours emerging';
+    else if (s > 10 && s <= 25) desc = 'Shapes forming';
+    else if (s > 25 && s <= 40) desc = 'Refining details';
+    else if (s > 40 && s < 50) desc = 'Final polish';
+    else if (s >= 50) desc = 'Complete!';
+    document.getElementById('diffStepLabel').textContent = `Step ${s} / 50 — ${desc}`;
+
+    if (step < TOTAL) {
+      diffAnim = requestAnimationFrame(tick);
+    } else {
+      diffAnim = null;
+      document.getElementById('diffPlayBtn').disabled = false;
+    }
+  }
+  // Start with noise
+  drawPixels(canvas, noise, SIZE);
+  diffAnim = requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════════
+// AUTOREGRESSIVE DEMO
+// ═══════════════════════════════════════════
+let arMode = 'var';
+let arAnim = null;
+
+function arSetMode(mode) {
+  arReset();
+  arMode = mode;
+  document.getElementById('arModeA').style.opacity = mode === 'raster' ? '1' : '0.5';
+  document.getElementById('arModeB').style.opacity = mode === 'var' ? '1' : '0.5';
+  document.getElementById('arInsightRaster').style.display = mode === 'raster' ? 'block' : 'none';
+  document.getElementById('arInsightVar').style.display = mode === 'var' ? 'block' : 'none';
+  document.getElementById('arStepLabel').textContent = mode === 'raster'
+    ? 'Raster scan: tokens generated one by one, L→R, T→B'
+    : 'Next-Scale: 1×1 → 2×2 → 4×4 → … → 32×32 (parallel at each scale)';
+}
+
+function arReset() {
+  if (arAnim) cancelAnimationFrame(arAnim);
+  arAnim = null;
+  const canvas = document.getElementById('arCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 256, 256);
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fillRect(0, 0, 256, 256);
+  document.getElementById('arStepLabel').textContent = 'Press Generate';
+  document.getElementById('arPlayBtn').disabled = false;
+}
+
+function arPlay() {
+  if (arAnim) return;
+  document.getElementById('arPlayBtn').disabled = true;
+  const SIZE = 256;
+  const canvas = document.getElementById('arCanvas');
+  const ctx = canvas.getContext('2d');
+  const subject = document.getElementById('arSubject').value;
+  const target = makeTargetImage(subject, SIZE);
+
+  if (arMode === 'raster') {
+    arPlayRaster(canvas, ctx, target, SIZE);
+  } else {
+    arPlayVar(canvas, ctx, target, SIZE);
+  }
+}
+
+function arPlayRaster(canvas, ctx, target, SIZE) {
+  // Fill one token (8×8 block) at a time, L→R, T→B
+  const BLOCK = 8;
+  const GRID = SIZE / BLOCK; // 32
+  const TOTAL = GRID * GRID; // 1024
+  let idx = 0;
+
+  // Start with grey
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  function tick() {
+    const speed = parseInt(document.getElementById('arSpeed').value);
+    const steps = Math.max(1, Math.round(speed * 2));
+
+    for (let s = 0; s < steps && idx < TOTAL; s++, idx++) {
+      const gx = idx % GRID, gy = Math.floor(idx / GRID);
+      const px = gx * BLOCK, py = gy * BLOCK;
+      // Get average colour of target in this block
+      let rr = 0, gg = 0, bb = 0, count = 0;
+      for (let dy = 0; dy < BLOCK; dy++) {
+        for (let dx = 0; dx < BLOCK; dx++) {
+          const ti = ((py + dy) * SIZE + (px + dx)) * 4;
+          rr += target[ti]; gg += target[ti+1]; bb += target[ti+2]; count++;
+        }
+      }
+      ctx.fillStyle = `rgb(${Math.round(rr/count)},${Math.round(gg/count)},${Math.round(bb/count)})`;
+      ctx.fillRect(px, py, BLOCK, BLOCK);
+
+      // Draw cursor
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px, py, BLOCK, BLOCK);
+    }
+
+    // Clear previous cursor
+    if (idx > 1) {
+      const prevIdx = idx - 1 - (Math.max(1, Math.round(parseInt(document.getElementById('arSpeed').value) * 2)));
+      // Redraw without cursor (just overdraw the blocks)
+    }
+
+    document.getElementById('arStepLabel').textContent = `Token ${idx} / ${TOTAL} — ${((idx/TOTAL)*100).toFixed(0)}% (one by one, left→right)`;
+
+    if (idx < TOTAL) {
+      arAnim = requestAnimationFrame(tick);
+    } else {
+      arAnim = null;
+      document.getElementById('arStepLabel').textContent = `Done! 1,024 sequential steps. Slow.`;
+      document.getElementById('arPlayBtn').disabled = false;
+    }
+  }
+  arAnim = requestAnimationFrame(tick);
+}
+
+function arPlayVar(canvas, ctx, target, SIZE) {
+  // Generate scale by scale: 1→2→4→8→16→32 (each fills entire canvas at that res)
+  const scales = [1, 2, 4, 8, 16, 32];
+  let scaleIdx = 0;
+  let tokenInScale = 0;
+
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillRect(0, 0, SIZE, SIZE);
+
+  function tick() {
+    const speed = parseInt(document.getElementById('arSpeed').value);
+
+    if (scaleIdx >= scales.length) {
+      arAnim = null;
+      document.getElementById('arStepLabel').textContent = `Done! Only ${scales.length} autoregressive steps (scale→scale). 20× faster!`;
+      document.getElementById('arPlayBtn').disabled = false;
+      return;
+    }
+
+    const scale = scales[scaleIdx];
+    const blockSize = SIZE / scale;
+    const totalTokens = scale * scale;
+
+    // At this scale, fill ALL tokens in parallel (with a small animation)
+    const tokensPerFrame = Math.max(1, Math.round(totalTokens / (15 / speed)));
+
+    for (let s = 0; s < tokensPerFrame && tokenInScale < totalTokens; s++, tokenInScale++) {
+      const gx = tokenInScale % scale, gy = Math.floor(tokenInScale / scale);
+      const px = gx * blockSize, py = gy * blockSize;
+      // Average colour from target
+      let rr = 0, gg = 0, bb = 0, count = 0;
+      for (let dy = 0; dy < blockSize && (py + dy) < SIZE; dy += Math.max(1, Math.floor(blockSize / 8))) {
+        for (let dx = 0; dx < blockSize && (px + dx) < SIZE; dx += Math.max(1, Math.floor(blockSize / 8))) {
+          const ti = ((py + dy) * SIZE + (px + dx)) * 4;
+          rr += target[ti]; gg += target[ti+1]; bb += target[ti+2]; count++;
+        }
+      }
+      ctx.fillStyle = `rgb(${Math.round(rr/count)},${Math.round(gg/count)},${Math.round(bb/count)})`;
+      ctx.fillRect(px, py, blockSize, blockSize);
+    }
+
+    document.getElementById('arStepLabel').textContent = `Scale ${scaleIdx + 1}/${scales.length}: ${scale}×${scale} — ${totalTokens} tokens generated in parallel`;
+
+    if (tokenInScale >= totalTokens) {
+      scaleIdx++;
+      tokenInScale = 0;
+      // Brief pause between scales
+      setTimeout(() => { arAnim = requestAnimationFrame(tick); }, 400 / speed);
+    } else {
+      arAnim = requestAnimationFrame(tick);
+    }
+  }
+  arAnim = requestAnimationFrame(tick);
+}
+
+// ═══════════════════════════════════════════
+// HYBRID / TRANSFUSION DEMO
+// ═══════════════════════════════════════════
+let hybridAnim = null;
+
+function hybridReset() {
+  if (hybridAnim) cancelAnimationFrame(hybridAnim);
+  hybridAnim = null;
+  const canvas = document.getElementById('hybridCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 256, 256);
+  ctx.fillStyle = '#f1f5f9';
+  ctx.fillRect(0, 0, 256, 256);
+  document.getElementById('hybridTimeline').innerHTML = '';
+  document.getElementById('hybridStepLabel').textContent = 'Press Generate';
+  document.getElementById('hybridPlayBtn').disabled = false;
+}
+
+function hybridPlay() {
+  if (hybridAnim) return;
+  document.getElementById('hybridPlayBtn').disabled = true;
+  const SIZE = 256;
+  const canvas = document.getElementById('hybridCanvas');
+  const ctx = canvas.getContext('2d');
+  const subject = document.getElementById('hybridSubject').value;
+  const target = makeTargetImage(subject, SIZE);
+  const noise = makeNoise(SIZE);
+  const speed = () => parseInt(document.getElementById('hybridSpeed').value);
+
+  // Phase 1: Generate text tokens autoregressively
+  const prompts = {
+    cat: ['Draw', 'a', 'cat', 'on', 'a', 'rainbow'],
+    city: ['Show', 'me', 'a', 'futuristic', 'city'],
+    mountain: ['Create', 'a', 'mountain', 'landscape']
+  };
+  const words = prompts[subject] || prompts.cat;
+  const allTokens = [...words, 'BOI', '🖼️', 'EOI', "Here's", 'your', 'image!'];
+
+  const timeline = document.getElementById('hybridTimeline');
+  timeline.innerHTML = '';
+
+  // Pre-create token elements
+  const tokenEls = allTokens.map((word, i) => {
+    const el = document.createElement('span');
+    el.className = 'token';
+    el.textContent = word;
+    el.style.width = 'auto';
+    el.style.padding = '0.2rem 0.5rem';
+    el.style.opacity = '0.15';
+    if (i < words.length) el.style.background = '#94a3b8';
+    else if (word === 'BOI') el.style.background = '#f59e0b';
+    else if (word === '🖼️') { el.style.background = '#10b981'; el.style.fontSize = '1.2rem'; }
+    else if (word === 'EOI') el.style.background = '#f59e0b';
+    else el.style.background = '#94a3b8';
+
+    if (i < allTokens.length - 1 && word !== '🖼️') {
+      const arrow = document.createElement('span');
+      arrow.className = 'arrow';
+      arrow.textContent = '→';
+      arrow.style.opacity = '0.15';
+      timeline.appendChild(el);
+      timeline.appendChild(arrow);
+      return el;
+    }
+    timeline.appendChild(el);
+    return el;
+  });
+
+  // Grey canvas
+  ctx.fillStyle = '#e2e8f0'; ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Waiting for text generation...', SIZE/2, SIZE/2);
+
+  let tokenIdx = 0;
+
+  function animateTokens() {
+    if (tokenIdx >= allTokens.length) {
+      // Done with all tokens
+      document.getElementById('hybridStepLabel').textContent = 'Complete! Text → Image → Text, all in one model.';
+      hybridAnim = null;
+      document.getElementById('hybridPlayBtn').disabled = false;
+      return;
+    }
+
+    const word = allTokens[tokenIdx];
+    tokenEls[tokenIdx].style.opacity = '1';
+    // Light up arrow before
+    const arrows = timeline.querySelectorAll('.arrow');
+    if (tokenIdx > 0 && tokenIdx <= arrows.length) arrows[tokenIdx-1].style.opacity = '1';
+
+    if (tokenIdx < words.length) {
+      // Text token phase
+      document.getElementById('hybridStepLabel').textContent = `Generating text token: "${word}" (autoregressive)`;
+      tokenIdx++;
+      setTimeout(animateTokens, 500 / speed());
+    }
+    else if (word === 'BOI') {
+      document.getElementById('hybridStepLabel').textContent = 'BOI — Begin Of Image marker emitted';
+      tokenIdx++;
+      setTimeout(animateTokens, 700 / speed());
+    }
+    else if (word === '🖼️') {
+      // IMAGE PHASE: diffusion on all patches simultaneously
+      document.getElementById('hybridStepLabel').textContent = 'Generating image via PARALLEL DIFFUSION on all patches...';
+      ctx.clearRect(0, 0, SIZE, SIZE);
+      drawPixels(canvas, noise, SIZE);
+      let diffStep = 0;
+      const DIFF_STEPS = 8; // Only 8 diffusion steps (fast!)
+
+      function diffTick() {
+        diffStep += speed() * 0.08;
+        if (diffStep > DIFF_STEPS) diffStep = DIFF_STEPS;
+        const t = diffStep / DIFF_STEPS;
+        const tEased = 1 - Math.pow(1 - t, 3);
+        const frame = blendPixels(noise, target, tEased, SIZE);
+        drawPixels(canvas, frame, SIZE);
+        document.getElementById('hybridStepLabel').textContent = `Image diffusion step ${Math.round(diffStep)}/${DIFF_STEPS} — ALL patches denoised in parallel`;
+
+        if (diffStep < DIFF_STEPS) {
+          hybridAnim = requestAnimationFrame(diffTick);
+        } else {
+          tokenIdx++;
+          setTimeout(animateTokens, 400 / speed());
+        }
+      }
+      hybridAnim = requestAnimationFrame(diffTick);
+      return; // Don't set timeout, diffTick handles flow
+    }
+    else if (word === 'EOI') {
+      document.getElementById('hybridStepLabel').textContent = 'EOI — End Of Image. Back to text generation...';
+      tokenIdx++;
+      setTimeout(animateTokens, 700 / speed());
+    }
+    else {
+      // Post-image text
+      document.getElementById('hybridStepLabel').textContent = `Generating text: "${word}" (autoregressive continues)`;
+      tokenIdx++;
+      setTimeout(animateTokens, 400 / speed());
+    }
+  }
+
+  setTimeout(animateTokens, 300);
+}
+
+// ═══════════════════════════════════════════
+// COMPARE ALL THREE
+// ═══════════════════════════════════════════
+let compareAnims = [];
+
+function compareReset() {
+  compareAnims.forEach(a => cancelAnimationFrame(a));
+  compareAnims = [];
+  ['cmpDiffCanvas', 'cmpArCanvas', 'cmpHybCanvas'].forEach(id => {
+    const c = document.getElementById(id); const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, 192, 192); ctx.fillStyle = '#f1f5f9'; ctx.fillRect(0, 0, 192, 192);
+  });
+  ['cmpDiffLabel', 'cmpArLabel', 'cmpHybLabel'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  document.getElementById('comparePlayBtn').disabled = false;
+}
+
+function comparePlay() {
+  compareReset();
+  document.getElementById('comparePlayBtn').disabled = true;
+  const SIZE = 192;
+  const subject = document.getElementById('compareSubject').value;
+  const target = makeTargetImage(subject, SIZE);
+  const noise = makeNoise(SIZE);
+  const speed = () => parseInt(document.getElementById('compareSpeed').value);
+
+  // 1. DIFFUSION
+  let diffStep = 0;
+  const DIFF_TOTAL = 50;
+  function diffTick() {
+    diffStep += speed() * 0.15;
+    if (diffStep > DIFF_TOTAL) diffStep = DIFF_TOTAL;
+    const t = 1 - Math.pow(1 - diffStep / DIFF_TOTAL, 2.5);
+    drawPixels(document.getElementById('cmpDiffCanvas'), blendPixels(noise, target, t, SIZE), SIZE);
+    document.getElementById('cmpDiffLabel').textContent = `Step ${Math.round(diffStep)}/50`;
+    if (diffStep < DIFF_TOTAL) compareAnims[0] = requestAnimationFrame(diffTick);
+    else document.getElementById('cmpDiffLabel').textContent = 'Done (50 steps)';
+  }
+  compareAnims[0] = requestAnimationFrame(diffTick);
+
+  // 2. AR (VAR mode)
+  const scales = [1, 2, 4, 8, 16, 24];
+  let scaleIdx = 0, tokenInScale = 0;
+  const arCanvas = document.getElementById('cmpArCanvas');
+  const arCtx = arCanvas.getContext('2d');
+  arCtx.fillStyle = '#e2e8f0'; arCtx.fillRect(0, 0, SIZE, SIZE);
+
+  function arTick() {
+    if (scaleIdx >= scales.length) {
+      document.getElementById('cmpArLabel').textContent = `Done (${scales.length} scales)`;
+      return;
+    }
+    const scale = scales[scaleIdx];
+    const blockSize = SIZE / scale;
+    const totalTokens = scale * scale;
+    const tokensPerFrame = Math.max(1, Math.round(totalTokens / (12 / speed())));
+
+    for (let s = 0; s < tokensPerFrame && tokenInScale < totalTokens; s++, tokenInScale++) {
+      const gx = tokenInScale % scale, gy = Math.floor(tokenInScale / scale);
+      const px = gx * blockSize, py = gy * blockSize;
+      let rr = 0, gg = 0, bb = 0, count = 0;
+      for (let dy = 0; dy < blockSize && (py+dy) < SIZE; dy += Math.max(1, Math.floor(blockSize/6))) {
+        for (let dx = 0; dx < blockSize && (px+dx) < SIZE; dx += Math.max(1, Math.floor(blockSize/6))) {
+          const ti = ((py+dy)*SIZE+(px+dx))*4;
+          rr += target[ti]; gg += target[ti+1]; bb += target[ti+2]; count++;
+        }
+      }
+      arCtx.fillStyle = `rgb(${Math.round(rr/count)},${Math.round(gg/count)},${Math.round(bb/count)})`;
+      arCtx.fillRect(px, py, Math.ceil(blockSize), Math.ceil(blockSize));
+    }
+    document.getElementById('cmpArLabel').textContent = `Scale ${scaleIdx+1}/${scales.length} (${scale}×${scale})`;
+    if (tokenInScale >= totalTokens) { scaleIdx++; tokenInScale = 0; setTimeout(() => { compareAnims[1] = requestAnimationFrame(arTick); }, 350/speed()); }
+    else compareAnims[1] = requestAnimationFrame(arTick);
+  }
+  compareAnims[1] = requestAnimationFrame(arTick);
+
+  // 3. HYBRID — delay (text first), then fast diffusion
+  const hybCanvas = document.getElementById('cmpHybCanvas');
+  const hybCtx = hybCanvas.getContext('2d');
+  hybCtx.fillStyle = '#e2e8f0'; hybCtx.fillRect(0, 0, SIZE, SIZE);
+  hybCtx.fillStyle = '#64748b'; hybCtx.font = '13px sans-serif'; hybCtx.textAlign = 'center';
+  hybCtx.fillText('Generating text...', SIZE/2, SIZE/2);
+  document.getElementById('cmpHybLabel').textContent = 'Text tokens...';
+
+  const textDelay = 2000 / speed();
+  setTimeout(() => {
+    document.getElementById('cmpHybLabel').textContent = 'BOI → diffusion';
+    let hybStep = 0;
+    const HYB_STEPS = 8;
+    function hybTick() {
+      hybStep += speed() * 0.12;
+      if (hybStep > HYB_STEPS) hybStep = HYB_STEPS;
+      const t = 1 - Math.pow(1 - hybStep / HYB_STEPS, 3);
+      drawPixels(hybCanvas, blendPixels(noise, target, t, SIZE), SIZE);
+      document.getElementById('cmpHybLabel').textContent = `Diffusion ${Math.round(hybStep)}/${HYB_STEPS}`;
+      if (hybStep < HYB_STEPS) compareAnims[2] = requestAnimationFrame(hybTick);
+      else {
+        document.getElementById('cmpHybLabel').textContent = 'Done (text + 8 steps)';
+        document.getElementById('comparePlayBtn').disabled = false;
+      }
+    }
+    compareAnims[2] = requestAnimationFrame(hybTick);
+  }, textDelay);
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+diffReset(); arReset(); hybridReset(); compareReset();
+arSetMode('var');
+</script>
+</body>
+</html>

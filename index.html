@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Generation — LMT AI Course</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color: #1e293b; background: #f1f5f9; line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+
+  .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); color: white; padding: 3rem 2rem; text-align: center; }
+  .header h1 { font-size: 2.2rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .header p { color: #94a3b8; font-size: 1rem; max-width: 550px; margin: 0 auto; }
+
+  .main { max-width: 700px; margin: 2rem auto; padding: 0 1rem; flex: 1; }
+
+  .app-card {
+    background: white; border-radius: 14px; padding: 1.8rem; margin-bottom: 1.2rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;
+    text-decoration: none; color: inherit; display: block; transition: all 0.15s;
+  }
+  .app-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); border-color: #cbd5e1; }
+  .app-card h2 { font-size: 1.3rem; margin-bottom: 0.3rem; }
+  .app-card p { color: #475569; font-size: 0.92rem; }
+  .app-card .tags { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  .app-card .tag { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600; }
+  .tag-rose { background: #fff1f2; color: #e11d48; }
+  .tag-blue { background: #eff6ff; color: #2563eb; }
+  .tag-purple { background: #faf5ff; color: #7c3aed; }
+  .tag-green { background: #f0fdf4; color: #16a34a; }
+  .tag-cyan { background: #ecfeff; color: #0891b2; }
+
+  .footer { text-align: center; padding: 1.5rem 1rem; color: #94a3b8; font-size: 0.8rem; }
+  .footer a { color: #2563eb; text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Image Generation</h1>
+  <p>LMT AI Course — interactive demos and live model inference for learning how AI generates images.</p>
+</div>
+
+<div class="main">
+  <a class="app-card" href="image_generation_app.html">
+    <h2>AI Image Generation Lab</h2>
+    <p>All-in-one interactive app. Simulated demos of VAEs, diffusion, autoregressive (VAR), and hybrid/Transfusion models — plus live image generation with FLUX.1 and Stable Diffusion XL via HuggingFace.</p>
+    <div class="tags">
+      <span class="tag tag-rose">VAE / MNIST</span>
+      <span class="tag tag-blue">Diffusion</span>
+      <span class="tag tag-purple">Autoregressive</span>
+      <span class="tag tag-green">Hybrid / Transfusion</span>
+      <span class="tag tag-cyan">Live Generation</span>
+    </div>
+  </a>
+
+  <a class="app-card" href="image_gen_demo.html">
+    <h2>Simulated Demos (standalone)</h2>
+    <p>Lightweight version with just the simulated demos: diffusion, autoregressive (raster vs VAR), hybrid/Transfusion, and side-by-side comparison. No API key needed.</p>
+    <div class="tags">
+      <span class="tag tag-blue">Diffusion</span>
+      <span class="tag tag-purple">Autoregressive</span>
+      <span class="tag tag-green">Hybrid</span>
+    </div>
+  </a>
+
+  <a class="app-card" href="image_gen_live.html">
+    <h2>Live Generation (standalone)</h2>
+    <p>Focused live image generation with FLUX.1 Schnell. Enter a HuggingFace token and generate real images with parameter controls and a gallery.</p>
+    <div class="tags">
+      <span class="tag tag-cyan">FLUX.1 Schnell</span>
+      <span class="tag tag-cyan">HuggingFace API</span>
+    </div>
+  </a>
+</div>
+
+<div class="footer">
+  LMT AI Course &middot; Adam Mickiewicz University
+</div>
+
+</body>
+</html>
