@@ -29,8 +29,9 @@
   .tab.active-diff { border-color: var(--blue); background: var(--blue); color: white; }
   .tab.active-ar { border-color: var(--purple); background: var(--purple); color: white; }
   .tab.active-hybrid { border-color: var(--green); background: var(--green); color: white; }
-  .tab.active-compare { border-color: var(--orange); background: var(--orange); color: white; }
-  .tab.active-live { border-color: var(--cyan); background: var(--cyan); color: white; }
+  .tab.active-gan { border-color: var(--orange); background: var(--orange); color: white; }
+  .tab.active-compare { border-color: var(--cyan); background: var(--cyan); color: white; }
+  .tab.active-live { border-color: #f472b6; background: #f472b6; color: white; }
 
   .panel { display: none; max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem 3rem; }
   .panel.live-panel { max-width: 1200px; }
@@ -234,18 +235,19 @@
 
 <div class="tabs">
   <div class="tab active-vae" onclick="showPanel('vae')" id="tab-vae">VAE <small style="opacity:0.7">2013</small></div>
+  <div class="tab" onclick="showPanel('gan')" id="tab-gan">GAN <small style="opacity:0.7">2014</small></div>
   <div class="tab" onclick="showPanel('diff')" id="tab-diff">Diffusion <small style="opacity:0.7">2020</small></div>
+  <div class="tab" onclick="showPanel('live')" id="tab-live">Live Generation</div>
   <div class="tab" onclick="showPanel('ar')" id="tab-ar">Autoregressive <small style="opacity:0.7">2021&ndash;2024</small></div>
   <div class="tab" onclick="showPanel('hybrid')" id="tab-hybrid">Hybrid / Transfusion <small style="opacity:0.7">2024+</small></div>
   <div class="tab" onclick="showPanel('compare')" id="tab-compare">Compare All</div>
-  <div class="tab" onclick="showPanel('live')" id="tab-live">Live Generation</div>
 </div>
 
 <!-- ═══════════════════════════════════ VAE ═══════════════════════════════════ -->
 <div class="panel visible" id="panel-vae">
   <div class="card">
     <h2>Variational Autoencoder (VAE) <span class="badge badge-rose">Foundation</span></h2>
-    <p>A VAE learns to compress images into a tiny <strong>latent space</strong>, then reconstruct them. Instead of memorising images pixel-by-pixel, it learns a smooth, continuous space where similar images are nearby. This is the foundation for almost all modern generative models.</p>
+    <p>Introduced by <a href="https://arxiv.org/abs/1312.6114" target="_blank" style="color:var(--rose)">Kingma &amp; Welling (2013)</a>. A VAE learns to compress images into a tiny <strong>latent space</strong>, then reconstruct them. Instead of memorising images pixel-by-pixel, it learns a smooth, continuous space where similar images are nearby. This is the foundation for almost all modern generative models.</p>
 
     <div class="demo-area">
       <div class="vae-layout">
@@ -307,11 +309,88 @@
   </div>
 </div>
 
+<!-- ═══════════════════════════════════ GAN ═══════════════════════════════════ -->
+<div class="panel" id="panel-gan">
+  <div class="card">
+    <h2>Generative Adversarial Network (GAN) <span class="badge" style="background:var(--orange-light);color:var(--orange);">Pioneering</span></h2>
+    <p>Introduced by <a href="https://arxiv.org/abs/1406.2661" target="_blank" style="color:var(--orange)">Goodfellow et al. (2014)</a>. Two neural networks compete: a <strong>Generator</strong> (forger) tries to create convincing fake images, while a <strong>Discriminator</strong> (detective) tries to tell real from fake. They improve each other through this adversarial game. Yann LeCun called GANs <em>"the most interesting idea in the last 10 years in ML."</em></p>
+
+    <div class="controls" style="margin-bottom:0.5rem;">
+      <button class="btn" id="ganModeA" onclick="ganSetMode('train')" style="background:var(--orange);color:white;">Training (step by step)</button>
+      <button class="btn" id="ganModeB" onclick="ganSetMode('infer')" style="background:var(--orange);color:white;opacity:0.5">Inference (generate)</button>
+    </div>
+
+    <div class="demo-area">
+      <div class="demo-layout">
+        <div class="demo-visual">
+          <canvas id="ganCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
+          <div class="step-label" id="ganStepLabel">Press Play or use &blacktriangleright; to step through training</div>
+          <div class="controls" style="margin-top:0.8rem;">
+            <button class="btn" id="ganPlayBtn" onclick="ganPlay()" style="background:var(--orange);color:white;">&#9654; Play</button>
+            <button class="btn-step" id="ganPrevBtn" onclick="ganStepBack()" disabled title="Step back">&#9664;</button>
+            <button class="btn-step" id="ganNextBtn" onclick="ganStepForward()" title="Step forward">&#9654;</button>
+            <button class="btn btn-outline" onclick="ganReset()">Reset</button>
+          </div>
+          <div class="controls" style="margin-top:0.4rem;">
+            <div class="slider-group">
+              <label>Speed</label>
+              <input type="range" min="1" max="10" value="1" id="ganSpeed">
+            </div>
+          </div>
+          <!-- Discriminator confidence bar -->
+          <div style="margin-top:0.8rem;text-align:left;">
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--muted);margin-bottom:0.2rem;">
+              <span>Discriminator says:</span>
+              <span id="ganDiscLabel" style="font-weight:700;color:var(--orange);">&mdash;</span>
+            </div>
+            <div style="background:#0f172a;border-radius:6px;height:12px;overflow:hidden;border:1px solid var(--border);">
+              <div id="ganDiscBar" style="height:100%;width:50%;background:linear-gradient(90deg,#ef4444,#f59e0b,#22c55e);border-radius:6px;transition:width 0.3s;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--muted);margin-top:0.15rem;">
+              <span>100% Fake</span>
+              <span>100% Real</span>
+            </div>
+          </div>
+        </div>
+        <div class="demo-log">
+          <div class="step-log" id="ganLog">
+            <div class="log-line active"><span class="log-step">[ready]</span> GAN training: Generator (forger) vs Discriminator (detective). Press Play to start.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ganInsightTrain" class="insight" style="border-left-color:var(--orange);background:var(--orange-light);color:#fed7aa;">
+      <strong>Training is a two-player game:</strong> Think of the early Generator as the famously botched <em>Ecce Homo</em> restoration &mdash; it tries to recreate the original but produces something hilariously wrong. The Discriminator easily spots the fake. But round after round, the Generator improves its forgeries while the Discriminator gets better at detecting them. Eventually the Generator produces images so realistic that even the Discriminator can't tell. Then: <strong>discard the Discriminator, ship the Generator.</strong>
+    </div>
+
+    <div id="ganInsightInfer" class="insight" style="border-left-color:var(--orange);background:var(--orange-light);color:#fed7aa;display:none;">
+      <strong>Inference is simple:</strong> Sample a random point from latent space, pass it through the trained Generator (a transposed CNN / decoder), and out comes a new image. No discriminator needed &mdash; it was only used during training. This is why GANs are fast at inference time.
+    </div>
+
+    <h3>How GAN training works</h3>
+    <ol style="margin:0.5rem 0;padding-left:1.4rem;">
+      <li><strong>Discriminator step:</strong> Feed the Discriminator a mix of real images and Generator fakes. It learns to classify them (real vs fake) using binary cross-entropy loss. Backprop updates <em>only</em> the Discriminator's weights.</li>
+      <li><strong>Generator step:</strong> The Generator creates fakes and labels them as <em>real</em>. The Discriminator evaluates them. The cross-entropy loss is backpropagated through the frozen Discriminator to update <em>only</em> the Generator's weights &mdash; teaching it to make more convincing fakes.</li>
+      <li><strong>Repeat:</strong> Alternate these two steps. The Generator gets better at fooling; the Discriminator gets better at detecting. This adversarial dynamic drives both networks to improve.</li>
+      <li><strong>Ship it:</strong> Once training converges, discard the Discriminator. The Generator alone is the final model.</li>
+    </ol>
+
+    <h3>Why GANs matter (and their limitations)</h3>
+    <ul>
+      <li>Produced the first photorealistic AI faces (<strong>StyleGAN</strong>, <a href="https://thispersondoesnotexist.com" target="_blank" style="color:var(--orange)">thispersondoesnotexist.com</a>)</li>
+      <li><strong>Mode collapse:</strong> Generator may learn to produce only a few types of images, ignoring diversity</li>
+      <li><strong>Training instability:</strong> The adversarial game is hard to balance &mdash; one network can overpower the other</li>
+      <li>Largely superseded by diffusion models (2020+) which are more stable and diverse</li>
+    </ul>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════ DIFFUSION ═══════════════════════════════════ -->
 <div class="panel" id="panel-diff">
   <div class="card">
     <h2>Diffusion: Learning to Denoise <span class="badge badge-blue">Most Mature</span></h2>
-    <p>Introduced by <a href="https://arxiv.org/abs/2006.11239" target="_blank" style="color:var(--blue)">Ho et al. (2020)</a>. A diffusion model starts from pure Gaussian noise and iteratively removes it, guided by the text prompt. Models: <strong>Stable Diffusion</strong>, <strong>DALL-E 2/3</strong>, <strong>Imagen</strong>, <strong>FLUX</strong>.</p>
+    <p>Introduced by <a href="https://arxiv.org/abs/2006.11239" target="_blank" style="color:var(--blue)">Ho et al. (2020)</a>. A diffusion model starts from pure Gaussian noise and iteratively removes it, guided by the text prompt. Modern models like Stable Diffusion (<a href="https://arxiv.org/abs/2112.10752" target="_blank" style="color:var(--blue)">Rombach et al., 2022</a>) do this in a <strong>compressed latent space</strong> (from a VAE), not on raw pixels &mdash; making it much faster. Models: <strong>Stable Diffusion</strong>, <strong>DALL-E 2/3</strong>, <strong>Imagen</strong>, <strong>FLUX</strong>.</p>
 
     <div class="demo-area">
       <div class="demo-layout">
@@ -347,14 +426,16 @@
 
     <h3>How diffusion works &mdash; step by step</h3>
     <ol style="margin:0.5rem 0;padding-left:1.4rem;">
-      <li><strong>Forward process (training):</strong> Take a real image and gradually add Gaussian noise over T steps until it becomes pure noise. This creates (image, noise-level) training pairs.</li>
+      <li><strong>Compress to latent space:</strong> A pre-trained VAE encoder compresses the image (e.g. 1024&times;1024 &rarr; 128&times;128 latent). All diffusion happens in this small latent space &mdash; much faster than working with raw pixels.</li>
+      <li><strong>Forward process (training):</strong> Gradually add Gaussian noise to the latent over T steps until it becomes pure noise. This creates (latent, noise-level) training pairs.</li>
       <li><strong>Neural network learns to denoise:</strong> A U-Net or Transformer is trained to predict the noise &epsilon; present at each step, conditioned on the text prompt (via cross-attention with CLIP/T5 text embeddings).</li>
-      <li><strong>Reverse process (generation):</strong> Start from pure noise x<sub>T</sub>. At each step t, the network predicts &epsilon;, which is subtracted to get a slightly cleaner x<sub>t-1</sub>. Repeat T times.</li>
+      <li><strong>Reverse process (generation):</strong> Start from pure noise in latent space. At each step t, the network predicts &epsilon;, which is subtracted to get a slightly cleaner latent. Repeat T times.</li>
+      <li><strong>Decode to pixels:</strong> The clean latent is passed through the VAE decoder to produce the final full-resolution image.</li>
       <li><strong>Classifier-free guidance:</strong> Run the network twice &mdash; once with the prompt, once without &mdash; and amplify the difference. Higher guidance = stricter prompt adherence but less diversity.</li>
     </ol>
 
     <div class="insight">
-      <strong>Key insight:</strong> The model doesn't "draw" &mdash; it <em>sculpts noise into an image</em>. Early steps establish global layout and colour palette; later steps refine textures and fine detail. Modern models like FLUX use <em>Rectified Flow</em> (straight-line paths instead of curved) which allows just 1&ndash;4 steps via distillation.
+      <strong>Key insight:</strong> The model doesn't "draw" &mdash; it <em>sculpts noise into an image</em>, working in the VAE's compressed latent space (not raw pixels &mdash; that's why it's called <em>Latent Diffusion</em>). Early steps establish global layout and colour palette; later steps refine textures and fine detail. Modern models like FLUX use <em>Rectified Flow</em> (straight-line paths instead of curved) which allows just 1&ndash;4 steps via distillation.
     </div>
 
     <h3>Try these external demos</h3>
@@ -429,7 +510,7 @@
 <div class="panel" id="panel-hybrid">
   <div class="card">
     <h2>Hybrid / Transfusion <span class="badge badge-green">Dominant approach (2025+)</span></h2>
-    <p>Introduced by <a href="https://arxiv.org/abs/2408.11039" target="_blank" style="color:var(--green)">Meta (2024)</a>. A single transformer handles <strong>both text and images</strong> with two objectives: cross-entropy for text tokens, MSE diffusion loss for image patches. This is believed to be the architecture behind <strong>GPT-4o</strong> image generation and Google's <strong>Gemini</strong> image models.</p>
+    <p>Introduced by <a href="https://arxiv.org/abs/2408.11039" target="_blank" style="color:var(--green)">Meta (2024)</a>. A single transformer handles <strong>both text and images</strong> with two objectives: cross-entropy for text tokens, MSE diffusion loss for image patches. This is believed to be the architecture behind <strong>GPT-4o</strong> image generation, Google's <strong>Gemini</strong> image models, and Apple's on-device image generation in <strong>Apple Intelligence</strong>.</p>
 
     <div class="demo-area">
       <div class="demo-layout">
@@ -444,6 +525,8 @@
               <option value="mountain">Create a mountain landscape</option>
             </select>
             <button class="btn btn-green" id="hybridPlayBtn" onclick="hybridPlay()">&#9654; Play</button>
+            <button class="btn-step" id="hybridPrevBtn" onclick="hybridStepBack()" disabled title="Step back">&#9664;</button>
+            <button class="btn-step" id="hybridNextBtn" onclick="hybridStepForward()" title="Step forward">&#9654;</button>
             <button class="btn btn-outline" onclick="hybridReset()">Reset</button>
           </div>
           <div class="controls" style="margin-top:0.4rem;">
@@ -470,7 +553,7 @@
     </ol>
 
     <div class="insight insight-green">
-      <strong>Why this is the dominant approach:</strong> One model, one set of weights, understands both language and vision natively. No separate image encoder/decoder pipeline. The image appears <em>all at once</em> (parallel diffusion), not pixel-by-pixel. This is why GPT-4o and Gemini can seamlessly mix text and images in a single conversation.
+      <strong>Why this is the dominant approach:</strong> One model, one set of weights, understands both language and vision natively. The same transformer backbone handles text and images &mdash; no separate generation pipeline needed. The image appears <em>all at once</em> (parallel diffusion), not pixel-by-pixel. This is why GPT-4o, Gemini, and Apple Intelligence can seamlessly mix text and images in a single conversation.
     </div>
   </div>
 </div>
@@ -492,7 +575,7 @@
       <button class="btn btn-outline" onclick="compareReset()">Reset</button>
       <div class="slider-group">
         <label>Speed</label>
-        <input type="range" min="1" max="10" value="5" id="compareSpeed">
+        <input type="range" min="1" max="10" value="1" id="compareSpeed">
       </div>
     </div>
 
@@ -1015,11 +1098,11 @@ function vaeDrawLatentSpace(highlightZ) {
   const W = canvas.width, H = canvas.height;
 
   // Background
-  ctx.fillStyle = '#fafafa';
+  ctx.fillStyle = '#0f172a';
   ctx.fillRect(0, 0, W, H);
 
   // Grid
-  ctx.strokeStyle = '#e8e8e8';
+  ctx.strokeStyle = '#1e293b';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 6; i++) {
     const x = (i / 6) * W, y = (i / 6) * H;
@@ -1028,10 +1111,10 @@ function vaeDrawLatentSpace(highlightZ) {
   }
 
   // Axes
-  ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#334155'; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
-  ctx.fillStyle = '#999'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#64748b'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
   ctx.fillText('z\u2081', W - 10, H/2 - 5);
   ctx.fillText('z\u2082', W/2 + 10, 12);
 
@@ -1049,7 +1132,7 @@ function vaeDrawLatentSpace(highlightZ) {
       const [cx, cy] = toCanvas(digitLatentPositions[d][v]);
       ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill();
       if (v === 0) {
-        ctx.fillStyle = '#333'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#94a3b8'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(d.toString(), cx, cy - 8);
         ctx.fillStyle = colors[d];
       }
@@ -1237,10 +1320,10 @@ let diffAnim = null;
 let diffLastLogStep = -1;
 let diffState = { noise: null, target: null, step: 0, TOTAL: 50 };
 const diffLogMessages = [
-  [0,  'Starting from pure Gaussian noise x\u209c \u2014 every pixel is random.'],
-  [3,  'U-Net/Transformer receives noisy image + text embedding via cross-attention.'],
+  [0,  'Starting from pure Gaussian noise in <span class="log-highlight">latent space</span> (compressed by a VAE encoder).'],
+  [3,  'U-Net/Transformer receives noisy latent + text embedding via cross-attention.'],
   [6,  'Network predicts noise \u03b5 present at this timestep.'],
-  [10, 'Predicted noise subtracted \u2192 x\u209c\u208b\u2081. Global colour palette emerging.'],
+  [10, 'Predicted noise subtracted \u2192 x\u209c\u208b\u2081. Global colour palette emerging in latent space.'],
   [15, 'Low-frequency structure locked in: sky vs ground, foreground vs background.'],
   [20, 'Classifier-free guidance amplifies prompt-relevant features.'],
   [25, 'Mid-frequency details forming: object shapes, edges, contours.'],
@@ -1248,7 +1331,7 @@ const diffLogMessages = [
   [35, 'High-frequency details: textures, patterns, fine edges.'],
   [40, 'Final refinement passes \u2014 sharpening edges, adding micro-detail.'],
   [45, 'Almost done \u2014 last few steps add subtle texture and polish.'],
-  [50, 'Generation complete! 50 denoising steps: noise \u2192 image.'],
+  [50, 'Denoising complete! Final latent decoded to pixels by <span class="log-highlight">VAE decoder</span>. Noise \u2192 latent \u2192 image.'],
 ];
 
 function diffReset() {
@@ -1484,6 +1567,7 @@ function arPlayVar(canvas, ctx, target, SIZE) {
 // HYBRID / TRANSFUSION DEMO
 // ═══════════════════════════════════════════════════════
 let hybridAnim = null;
+let hybridState = { step: -1, totalSteps: 0, steps: [], noise: null, target: null, tokenEls: null };
 
 function hybridLogAppend(label, msg) {
   const log = document.getElementById('hybridLog');
@@ -1495,97 +1579,434 @@ function hybridLogAppend(label, msg) {
   log.scrollTop = log.scrollHeight;
 }
 
+function hybridEnsureInit() {
+  if (hybridState.steps.length > 0) return;
+  const SIZE = 256;
+  const subject = document.getElementById('hybridSubject').value;
+  hybridState.target = makeTargetImage(subject, SIZE);
+  hybridState.noise = makeNoise(SIZE);
+
+  const prompts = {cat:['Draw','a','cat','on','a','rainbow'], city:['Show','me','a','futuristic','city'], mountain:['Create','a','mountain','landscape']};
+  const words = prompts[subject] || prompts.cat;
+  // Build step list: each text token, BOI, 8 diffusion steps, EOI, post-text tokens
+  const steps = [];
+  words.forEach((w, i) => steps.push({ type: 'text', word: w, tokenIdx: i, isFirst: i===0, isLast: i===words.length-1 }));
+  steps.push({ type: 'boi', tokenIdx: words.length });
+  const DIFF_STEPS = 8;
+  for (let d = 1; d <= DIFF_STEPS; d++) steps.push({ type: 'diffuse', diffStep: d, diffTotal: DIFF_STEPS, tokenIdx: words.length + 1 });
+  steps.push({ type: 'eoi', tokenIdx: words.length + 2 });
+  const postWords = ["Here's", 'your', 'image!'];
+  postWords.forEach((w, i) => steps.push({ type: 'post-text', word: w, tokenIdx: words.length + 3 + i, isLast: i === postWords.length - 1 }));
+
+  hybridState.steps = steps;
+  hybridState.totalSteps = steps.length;
+  hybridState.step = -1;
+
+  // Build timeline
+  const allTokens = [...words, 'BOI', '\ud83d\uddbc\ufe0f', 'EOI', ...postWords];
+  const timeline = document.getElementById('hybridTimeline');
+  timeline.innerHTML = '';
+  const tokenEls = allTokens.map((word, i) => {
+    const el = document.createElement('span'); el.className = 'token'; el.textContent = word;
+    el.style.width = 'auto'; el.style.padding = '0.2rem 0.5rem'; el.style.opacity = '0.15';
+    if (i < words.length) el.style.background = '#94a3b8';
+    else if (word === 'BOI') el.style.background = '#f59e0b';
+    else if (word === '\ud83d\uddbc\ufe0f') { el.style.background = '#10b981'; el.style.fontSize = '1.2rem'; }
+    else if (word === 'EOI') el.style.background = '#f59e0b';
+    else el.style.background = '#94a3b8';
+    if (i < allTokens.length - 1 && word !== '\ud83d\uddbc\ufe0f') {
+      const arrow = document.createElement('span'); arrow.className = 'arrow'; arrow.textContent = '\u2192'; arrow.style.opacity = '0.15';
+      timeline.appendChild(el); timeline.appendChild(arrow); return el;
+    }
+    timeline.appendChild(el); return el;
+  });
+  hybridState.tokenEls = tokenEls;
+
+  const canvas = document.getElementById('hybridCanvas'), ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, SIZE, SIZE);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Waiting for text generation...', SIZE/2, SIZE/2);
+  document.getElementById('hybridLog').innerHTML = '';
+  hybridLogAppend('init', 'Transfusion model processes prompt as text tokens via autoregressive LM objective.');
+}
+
+function hybridRenderStep() {
+  const { step, steps, noise, target, tokenEls } = hybridState;
+  const SIZE = 256, canvas = document.getElementById('hybridCanvas'), ctx = canvas.getContext('2d');
+  const timeline = document.getElementById('hybridTimeline');
+  const arrows = timeline.querySelectorAll('.arrow');
+
+  // Reset all timeline visuals up to current step
+  tokenEls.forEach(el => el.style.opacity = '0.15');
+  arrows.forEach(a => a.style.opacity = '0.15');
+
+  // Show all tokens/arrows up to and including current step
+  const maxTokenIdx = step >= 0 ? steps[step].tokenIdx : -1;
+  for (let i = 0; i <= maxTokenIdx && i < tokenEls.length; i++) {
+    tokenEls[i].style.opacity = '1';
+    if (i > 0 && i - 1 < arrows.length) arrows[i - 1].style.opacity = '1';
+  }
+
+  // Rebuild log from scratch
+  document.getElementById('hybridLog').innerHTML = '';
+  hybridLogAppend('init', 'Transfusion model processes prompt as text tokens via autoregressive LM objective.');
+  let loggedFirstText = false, loggedLastText = false, loggedBoi = false;
+  let loggedDiffStart = false, loggedDiffMid = false, loggedDiffDone = false;
+  let loggedEoi = false, loggedFinish = false;
+
+  for (let i = 0; i <= step && i < steps.length; i++) {
+    const s = steps[i];
+    if (s.type === 'text' && s.isFirst && !loggedFirstText) {
+      loggedFirstText = true;
+      hybridLogAppend('text', `Predicting text tokens autoregressively: "${s.word}" \u2014 standard next-token prediction.`);
+    }
+    if (s.type === 'text' && s.isLast && !loggedLastText) {
+      loggedLastText = true;
+      hybridLogAppend('text', `Last prompt token "${s.word}". Next: special BOI (Begin Of Image) token.`);
+    }
+    if (s.type === 'boi' && !loggedBoi) {
+      loggedBoi = true;
+      hybridLogAppend('BOI', 'BOI token: mode switch from text (cross-entropy) to image (diffusion/MSE loss).');
+    }
+    if (s.type === 'diffuse' && !loggedDiffStart) {
+      loggedDiffStart = true;
+      hybridLogAppend('diffuse', 'Image patches generated via PARALLEL diffusion \u2014 all patches denoised simultaneously.');
+    }
+    if (s.type === 'diffuse' && s.diffStep >= 4 && !loggedDiffMid) {
+      loggedDiffMid = true;
+      hybridLogAppend('step 4', 'Halfway through denoising. Image patches share info via bidirectional attention.');
+    }
+    if (s.type === 'diffuse' && s.diffStep >= s.diffTotal && !loggedDiffDone) {
+      loggedDiffDone = true;
+      hybridLogAppend('done', 'Image diffusion complete. Model emits EOI and resumes text generation.');
+    }
+    if (s.type === 'eoi' && !loggedEoi) {
+      loggedEoi = true;
+      hybridLogAppend('EOI', 'EOI token: back to text mode. Model can now discuss the image it generated.');
+    }
+    if (s.type === 'post-text' && s.isLast && !loggedFinish) {
+      loggedFinish = true;
+      hybridLogAppend('finish', 'Complete! One model, dual objective: cross-entropy (text) + MSE (images).');
+    }
+  }
+
+  // Render canvas based on current step
+  if (step < 0) {
+    ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, SIZE, SIZE);
+    ctx.fillStyle = '#94a3b8'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Waiting for text generation...', SIZE/2, SIZE/2);
+    document.getElementById('hybridStepLabel').textContent = 'Step 0 / ' + steps.length + ' \u2014 Press Play or \u25b6';
+  } else {
+    const s = steps[step];
+    if (s.type === 'text') {
+      ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('Generating text tokens...', SIZE/2, SIZE/2);
+      document.getElementById('hybridStepLabel').textContent = `Text token: "${s.word}" (autoregressive)`;
+    } else if (s.type === 'boi') {
+      ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.fillStyle = '#f59e0b'; ctx.font = '16px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('BOI \u2014 switching to image diffusion...', SIZE/2, SIZE/2);
+      document.getElementById('hybridStepLabel').textContent = 'BOI \u2014 Begin Of Image marker emitted';
+    } else if (s.type === 'diffuse') {
+      const t = s.diffStep / s.diffTotal, tE = 1 - Math.pow(1-t, 3);
+      drawPixels(canvas, blendPixels(noise, target, tE, SIZE), SIZE);
+      document.getElementById('hybridStepLabel').textContent = `Image diffusion step ${s.diffStep}/${s.diffTotal} \u2014 ALL patches denoised in parallel`;
+    } else if (s.type === 'eoi') {
+      drawPixels(canvas, target, SIZE);
+      document.getElementById('hybridStepLabel').textContent = 'EOI \u2014 End Of Image. Back to text generation...';
+    } else if (s.type === 'post-text') {
+      drawPixels(canvas, target, SIZE);
+      document.getElementById('hybridStepLabel').textContent = `Generating text: "${s.word}" (autoregressive continues)`;
+    }
+  }
+
+  document.getElementById('hybridPrevBtn').disabled = (step <= -1);
+  document.getElementById('hybridNextBtn').disabled = (step >= steps.length - 1);
+}
+
+function hybridStepForward() {
+  if (hybridAnim) { clearTimeout(hybridAnim); hybridAnim = null; }
+  hybridEnsureInit();
+  if (hybridState.step < hybridState.steps.length - 1) hybridState.step++;
+  hybridRenderStep();
+  document.getElementById('hybridPlayBtn').disabled = false;
+}
+
+function hybridStepBack() {
+  if (hybridAnim) { clearTimeout(hybridAnim); hybridAnim = null; }
+  if (hybridState.steps.length === 0) return;
+  if (hybridState.step >= 0) hybridState.step--;
+  hybridRenderStep();
+  document.getElementById('hybridPlayBtn').disabled = false;
+}
+
 function hybridReset() {
-  if (hybridAnim) cancelAnimationFrame(hybridAnim); hybridAnim=null;
+  if (hybridAnim) clearTimeout(hybridAnim); hybridAnim=null;
+  hybridState = { step: -1, totalSteps: 0, steps: [], noise: null, target: null, tokenEls: null };
   const ctx=document.getElementById('hybridCanvas').getContext('2d');
   ctx.clearRect(0,0,256,256); ctx.fillStyle='#1e293b'; ctx.fillRect(0,0,256,256);
   document.getElementById('hybridTimeline').innerHTML='';
   document.getElementById('hybridStepLabel').textContent='Press Generate';
   document.getElementById('hybridLog').innerHTML='<div class="log-line active"><span class="log-step">[ready]</span> Transfusion: a single transformer handles BOTH text (cross-entropy) and images (diffusion MSE).</div>';
   document.getElementById('hybridPlayBtn').disabled=false;
+  document.getElementById('hybridPrevBtn').disabled=true;
+  document.getElementById('hybridNextBtn').disabled=false;
 }
 
 function hybridPlay() {
   if (hybridAnim) return;
+  hybridEnsureInit();
   document.getElementById('hybridPlayBtn').disabled = true;
-  document.getElementById('hybridLog').innerHTML = '';
-  hybridLogAppend('init', 'Transfusion model processes prompt as text tokens via standard autoregressive LM objective.');
-  const SIZE=256, canvas=document.getElementById('hybridCanvas'), ctx=canvas.getContext('2d');
-  const subject=document.getElementById('hybridSubject').value;
-  const target=makeTargetImage(subject,SIZE), noise=makeNoise(SIZE);
-  const speed=()=>parseInt(document.getElementById('hybridSpeed').value);
-
-  const prompts={cat:['Draw','a','cat','on','a','rainbow'],city:['Show','me','a','futuristic','city'],mountain:['Create','a','mountain','landscape']};
-  const words=prompts[subject]||prompts.cat;
-  const allTokens=[...words,'BOI','\ud83d\uddbc\ufe0f','EOI',"Here's",'your','image!'];
-  const timeline=document.getElementById('hybridTimeline');
-  timeline.innerHTML='';
-
-  const tokenEls=allTokens.map((word,i)=>{
-    const el=document.createElement('span'); el.className='token'; el.textContent=word;
-    el.style.width='auto'; el.style.padding='0.2rem 0.5rem'; el.style.opacity='0.15';
-    if(i<words.length) el.style.background='#94a3b8';
-    else if(word==='BOI') el.style.background='#f59e0b';
-    else if(word==='\ud83d\uddbc\ufe0f'){el.style.background='#10b981';el.style.fontSize='1.2rem';}
-    else if(word==='EOI') el.style.background='#f59e0b';
-    else el.style.background='#94a3b8';
-    if(i<allTokens.length-1&&word!=='\ud83d\uddbc\ufe0f'){
-      const arrow=document.createElement('span');arrow.className='arrow';arrow.textContent='\u2192';arrow.style.opacity='0.15';
-      timeline.appendChild(el);timeline.appendChild(arrow);return el;
+  const speed = () => parseInt(document.getElementById('hybridSpeed').value);
+  function tick() {
+    if (hybridState.step >= hybridState.steps.length - 1) {
+      hybridAnim = null; document.getElementById('hybridPlayBtn').disabled = false; return;
     }
-    timeline.appendChild(el); return el;
-  });
+    hybridState.step++;
+    hybridRenderStep();
+    const s = hybridState.steps[hybridState.step];
+    let delay = 400 / speed();
+    if (s.type === 'boi' || s.type === 'eoi') delay = 700 / speed();
+    else if (s.type === 'diffuse') delay = 200 / speed();
+    hybridAnim = setTimeout(tick, delay);
+  }
+  tick();
+}
 
-  ctx.fillStyle='#1e293b';ctx.fillRect(0,0,SIZE,SIZE);
-  ctx.fillStyle='#94a3b8';ctx.font='14px sans-serif';ctx.textAlign='center';
-  ctx.fillText('Waiting for text generation...',SIZE/2,SIZE/2);
+// ═══════════════════════════════════════════════════════
+// GAN DEMO
+// ═══════════════════════════════════════════════════════
+let ganMode = 'train';
+let ganAnim = null;
+let ganState = { step: -1, totalSteps: 0, steps: [], target: null, noiseSeeds: null };
 
-  let tokenIdx=0;
-  function animateTokens(){
-    if(tokenIdx>=allTokens.length){
-      document.getElementById('hybridStepLabel').textContent='Complete! Text \u2192 Image \u2192 Text, all in one model.';
-      hybridAnim=null; document.getElementById('hybridPlayBtn').disabled=false; return;
-    }
-    const word=allTokens[tokenIdx];
-    tokenEls[tokenIdx].style.opacity='1';
-    const arrows=timeline.querySelectorAll('.arrow');
-    if(tokenIdx>0&&tokenIdx<=arrows.length) arrows[tokenIdx-1].style.opacity='1';
+function ganMakeOutput(quality, target, SIZE, seedOffset) {
+  // Generate a face at various quality levels (0 = noise, 1 = perfect)
+  const out = new Uint8ClampedArray(SIZE * SIZE * 4);
+  // Block size: larger at low quality (pixelated), 1 at high quality
+  const blockPow = Math.max(0, Math.round((1 - quality) * 6)); // 6 -> 0
+  const blockSize = Math.max(1, Math.pow(2, blockPow)); // 64 -> 1
 
-    if(tokenIdx<words.length){
-      document.getElementById('hybridStepLabel').textContent=`Generating text token: "${word}" (autoregressive)`;
-      if(tokenIdx===0) hybridLogAppend('text', `Predicting text tokens autoregressively: "${word}" \u2014 standard next-token prediction (cross-entropy loss).`);
-      else if(tokenIdx===words.length-1) hybridLogAppend('text', `Last prompt token "${word}". Next the model will emit a special BOI (Begin Of Image) token.`);
-      tokenIdx++; setTimeout(animateTokens,500/speed());
-    } else if(word==='BOI'){
-      document.getElementById('hybridStepLabel').textContent='BOI \u2014 Begin Of Image marker emitted';
-      hybridLogAppend('BOI', 'BOI token signals mode switch: the model transitions from text (cross-entropy) to image (diffusion/MSE loss).');
-      tokenIdx++; setTimeout(animateTokens,700/speed());
-    } else if(word==='\ud83d\uddbc\ufe0f'){
-      document.getElementById('hybridStepLabel').textContent='Generating image via PARALLEL DIFFUSION on all patches...';
-      hybridLogAppend('diffuse', 'Image patches generated via PARALLEL diffusion \u2014 not sequential! All patches denoised simultaneously.');
-      ctx.clearRect(0,0,SIZE,SIZE); drawPixels(canvas,noise,SIZE);
-      let diffStep=0; const DIFF_STEPS=8; let hybDiffLogged4=false;
-      function diffTick(){
-        diffStep+=speed()*0.08; if(diffStep>DIFF_STEPS) diffStep=DIFF_STEPS;
-        const t=diffStep/DIFF_STEPS, tE=1-Math.pow(1-t,3);
-        drawPixels(canvas,blendPixels(noise,target,tE,SIZE),SIZE);
-        document.getElementById('hybridStepLabel').textContent=`Image diffusion step ${Math.round(diffStep)}/${DIFF_STEPS} \u2014 ALL patches denoised in parallel`;
-        if(Math.round(diffStep)>=4 && !hybDiffLogged4){ hybDiffLogged4=true; hybridLogAppend('step 4', 'Halfway through denoising. Unlike autoregressive: image patches share info via bidirectional attention.'); }
-        if(diffStep<DIFF_STEPS) hybridAnim=requestAnimationFrame(diffTick);
-        else { hybridLogAppend('done', 'Image diffusion complete. Model emits EOI token and resumes text generation.'); tokenIdx++; setTimeout(animateTokens,400/speed()); }
+  for (let by = 0; by < SIZE; by += blockSize) {
+    for (let bx = 0; bx < SIZE; bx += blockSize) {
+      // Average target pixels in this block
+      let rr = 0, gg = 0, bb = 0, count = 0;
+      for (let dy = 0; dy < blockSize && by + dy < SIZE; dy++) {
+        for (let dx = 0; dx < blockSize && bx + dx < SIZE; dx++) {
+          const ti = ((by + dy) * SIZE + (bx + dx)) * 4;
+          rr += target[ti]; gg += target[ti+1]; bb += target[ti+2]; count++;
+        }
       }
-      hybridAnim=requestAnimationFrame(diffTick); return;
-    } else if(word==='EOI'){
-      document.getElementById('hybridStepLabel').textContent='EOI \u2014 End Of Image. Back to text generation...';
-      hybridLogAppend('EOI', 'EOI token: back to text mode. The model can now describe or discuss the image it just generated.');
-      tokenIdx++; setTimeout(animateTokens,700/speed());
-    } else {
-      document.getElementById('hybridStepLabel').textContent=`Generating text: "${word}" (autoregressive continues)`;
-      if(tokenIdx===allTokens.length-1) hybridLogAppend('finish', 'Complete! One model, one forward pass architecture \u2014 dual objective: cross-entropy (text) + MSE (images). Believed to power GPT-4o.');
-      tokenIdx++; setTimeout(animateTokens,400/speed());
+      rr /= count; gg /= count; bb /= count;
+
+      // Add noise and color distortion based on quality
+      const noiseAmt = (1 - quality) * 80;
+      // Color shift at low quality (skin too orange/green)
+      const colorShift = (1 - quality) * 40;
+      // Seeded pseudo-random for consistent look per block
+      const seed = Math.sin((bx + 1) * 127.1 + (by + 1) * 311.7 + (seedOffset || 0)) * 43758.5453;
+      const rand1 = seed - Math.floor(seed);
+      const seed2 = Math.sin((bx + 1) * 269.5 + (by + 1) * 183.3 + (seedOffset || 0)) * 43758.5453;
+      const rand2 = seed2 - Math.floor(seed2);
+
+      // At very low quality, mostly random
+      let blendToTarget = Math.pow(quality, 0.6);
+      const nr = clamp(rr * blendToTarget + (128 + (rand1 - 0.5) * 160) * (1 - blendToTarget) + (rand1 - 0.5) * noiseAmt + colorShift * (rand2 - 0.3));
+      const ng = clamp(gg * blendToTarget + (128 + (rand2 - 0.5) * 160) * (1 - blendToTarget) + (rand2 - 0.5) * noiseAmt - colorShift * 0.3);
+      const nb = clamp(bb * blendToTarget + (100 + (rand1 - 0.5) * 120) * (1 - blendToTarget) + (rand1 - 0.5) * noiseAmt * 0.8 - colorShift * 0.5);
+
+      for (let dy = 0; dy < blockSize && by + dy < SIZE; dy++) {
+        for (let dx = 0; dx < blockSize && bx + dx < SIZE; dx++) {
+          const i = ((by + dy) * SIZE + (bx + dx)) * 4;
+          out[i] = nr; out[i+1] = ng; out[i+2] = nb; out[i+3] = 255;
+        }
+      }
     }
   }
-  setTimeout(animateTokens,300);
+  return out;
+}
+
+function ganEnsureInit() {
+  if (ganState.steps.length > 0) return;
+  const SIZE = 256;
+  ganState.target = makeTargetImage('face', SIZE);
+
+  if (ganMode === 'train') {
+    // Training steps: 10 rounds, each has D-step and G-step
+    const ROUNDS = 10;
+    const steps = [];
+    for (let r = 0; r < ROUNDS; r++) {
+      steps.push({ type: 'd-step', round: r + 1, quality: r / ROUNDS });
+      steps.push({ type: 'g-step', round: r + 1, quality: (r + 1) / ROUNDS });
+    }
+    steps.push({ type: 'done' });
+    ganState.steps = steps;
+  } else {
+    // Inference: 5 different random samples
+    const steps = [];
+    for (let i = 0; i < 5; i++) {
+      steps.push({ type: 'sample', idx: i + 1 });
+    }
+    ganState.steps = steps;
+  }
+  ganState.totalSteps = ganState.steps.length;
+  ganState.step = -1;
+  document.getElementById('ganLog').innerHTML = '';
+  ganLogAppend('init', ganMode === 'train'
+    ? 'GAN training begins. Generator starts with random weights \u2014 output is pure noise.'
+    : 'Inference mode: Generator is fully trained. Sampling random latent vectors...');
+}
+
+function ganLogAppend(label, msg) {
+  const log = document.getElementById('ganLog');
+  log.querySelectorAll('.log-line').forEach(l => l.classList.remove('active'));
+  const line = document.createElement('div');
+  line.className = 'log-line active';
+  line.innerHTML = `<span class="log-step">[${label}]</span> ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function ganRenderStep() {
+  const { step, steps, target } = ganState;
+  const SIZE = 256, canvas = document.getElementById('ganCanvas'), ctx = canvas.getContext('2d');
+
+  if (step < 0) {
+    // Initial state
+    if (ganMode === 'train') {
+      // Show pure noise (untrained generator)
+      const noiseImg = ganMakeOutput(0, target, SIZE, 42);
+      drawPixels(canvas, noiseImg, SIZE);
+      document.getElementById('ganStepLabel').textContent = 'Epoch 0 \u2014 Untrained generator (random noise)';
+      document.getElementById('ganDiscBar').style.width = '10%';
+      document.getElementById('ganDiscLabel').textContent = '95% Fake \u2014 easy to spot!';
+    } else {
+      ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.fillStyle = '#94a3b8'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('Press \u25b6 to generate samples', SIZE/2, SIZE/2);
+      document.getElementById('ganStepLabel').textContent = 'Ready \u2014 Generator trained, Discriminator discarded';
+      document.getElementById('ganDiscBar').style.width = '0%';
+      document.getElementById('ganDiscLabel').textContent = 'N/A (discarded)';
+    }
+  } else if (step < steps.length) {
+    const s = steps[step];
+    if (s.type === 'd-step') {
+      // Show current generator output (quality from previous round)
+      const img = ganMakeOutput(s.quality, target, SIZE, 42);
+      drawPixels(canvas, img, SIZE);
+      document.getElementById('ganStepLabel').textContent = `Round ${s.round}/10 \u2014 Discriminator training`;
+      // Discriminator gets better at detecting fakes
+      const discConf = Math.min(95, 50 + (1 - s.quality) * 45);
+      document.getElementById('ganDiscBar').style.width = `${100 - discConf}%`;
+      document.getElementById('ganDiscLabel').textContent = `${Math.round(discConf)}% Fake`;
+    } else if (s.type === 'g-step') {
+      // Generator improves
+      const img = ganMakeOutput(s.quality, target, SIZE, 42);
+      drawPixels(canvas, img, SIZE);
+      document.getElementById('ganStepLabel').textContent = `Round ${s.round}/10 \u2014 Generator improved!`;
+      // Discriminator is now less sure
+      const discConf = Math.max(5, 50 - s.quality * 45);
+      document.getElementById('ganDiscBar').style.width = `${100 - discConf}%`;
+      document.getElementById('ganDiscLabel').textContent = s.quality >= 1 ? '50% \u2014 can\'t tell anymore!' : `${Math.round(discConf)}% Fake`;
+    } else if (s.type === 'done') {
+      const img = ganMakeOutput(1.0, target, SIZE, 42);
+      drawPixels(canvas, img, SIZE);
+      document.getElementById('ganStepLabel').textContent = 'Training complete! Generator produces realistic images.';
+      document.getElementById('ganDiscBar').style.width = '50%';
+      document.getElementById('ganDiscLabel').textContent = '50% \u2014 can\'t tell real from fake!';
+    } else if (s.type === 'sample') {
+      const img = ganMakeOutput(1.0, makeTargetImage('face', SIZE), SIZE, s.idx * 100);
+      drawPixels(canvas, img, SIZE);
+      document.getElementById('ganStepLabel').textContent = `Sample ${s.idx}/5 \u2014 random latent \u2192 Generator \u2192 image`;
+    }
+  }
+
+  // Rebuild log
+  document.getElementById('ganLog').innerHTML = '';
+  ganLogAppend('init', ganMode === 'train'
+    ? 'GAN training begins. Generator starts with random weights.'
+    : 'Inference mode: sampling random latent vectors through trained Generator.');
+
+  for (let i = 0; i <= step && i < steps.length; i++) {
+    const s = steps[i];
+    if (s.type === 'd-step') {
+      if (s.round === 1) ganLogAppend(`D r${s.round}`, 'Discriminator sees real faces + Generator noise. Easily classifies them. Backprop updates D weights only.');
+      else if (s.round <= 3) ganLogAppend(`D r${s.round}`, `Discriminator re-trained on latest Generator output. Still catches fakes \u2014 they're blurry and blocky.`);
+      else if (s.round <= 6) ganLogAppend(`D r${s.round}`, 'Discriminator has to work harder now. Generator output has proper shapes and colours.');
+      else if (s.round <= 9) ganLogAppend(`D r${s.round}`, 'Discriminator is struggling. Fakes are nearly indistinguishable from real images.');
+      else ganLogAppend(`D r${s.round}`, 'Final D step. Discriminator accuracy is near chance level (50%).');
+    } else if (s.type === 'g-step') {
+      if (s.round === 1) ganLogAppend(`G r${s.round}`, 'Generator creates fakes labelled as "real." D\'s loss is backpropagated through frozen D to update G. First improvement: vague skin-coloured blobs.');
+      else if (s.round === 2) ganLogAppend(`G r${s.round}`, 'Generator learns rough face shape. Like the <span class="log-highlight">Ecce Homo</span> restoration \u2014 hilariously wrong but getting there.');
+      else if (s.round <= 5) ganLogAppend(`G r${s.round}`, `Generator round ${s.round}: features sharpening. Eyes, nose, mouth becoming recognisable.`);
+      else if (s.round <= 8) ganLogAppend(`G r${s.round}`, `Round ${s.round}: high-frequency detail emerging. Textures, skin tone, lighting.`);
+      else ganLogAppend(`G r${s.round}`, 'Generator nearly perfect. Fine detail and micro-textures.');
+    } else if (s.type === 'done') {
+      ganLogAppend('done', 'Training complete! Discard Discriminator. Ship Generator for inference.');
+    } else if (s.type === 'sample') {
+      ganLogAppend(`sample ${s.idx}`, `Random z ~ N(0,1) \u2192 Generator (transposed CNN) \u2192 new face. Fast single forward pass.`);
+    }
+  }
+
+  document.getElementById('ganPrevBtn').disabled = (step <= -1);
+  document.getElementById('ganNextBtn').disabled = (step >= steps.length - 1);
+}
+
+function ganStepForward() {
+  if (ganAnim) { clearTimeout(ganAnim); ganAnim = null; }
+  ganEnsureInit();
+  if (ganState.step < ganState.steps.length - 1) ganState.step++;
+  ganRenderStep();
+  document.getElementById('ganPlayBtn').disabled = false;
+}
+
+function ganStepBack() {
+  if (ganAnim) { clearTimeout(ganAnim); ganAnim = null; }
+  if (ganState.steps.length === 0) return;
+  if (ganState.step >= 0) ganState.step--;
+  ganRenderStep();
+  document.getElementById('ganPlayBtn').disabled = false;
+}
+
+function ganReset() {
+  if (ganAnim) clearTimeout(ganAnim); ganAnim = null;
+  ganState = { step: -1, totalSteps: 0, steps: [], target: null, noiseSeeds: null };
+  const ctx = document.getElementById('ganCanvas').getContext('2d');
+  ctx.clearRect(0, 0, 256, 256); ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, 256, 256);
+  document.getElementById('ganStepLabel').textContent = 'Press Play or use \u25b6 to step through ' + (ganMode === 'train' ? 'training' : 'inference');
+  document.getElementById('ganLog').innerHTML = '<div class="log-line active"><span class="log-step">[ready]</span> GAN ' + (ganMode === 'train' ? 'training: Generator (forger) vs Discriminator (detective).' : 'inference: sample from trained Generator.') + ' Press Play to start.</div>';
+  document.getElementById('ganPlayBtn').disabled = false;
+  document.getElementById('ganPrevBtn').disabled = true;
+  document.getElementById('ganNextBtn').disabled = false;
+  document.getElementById('ganDiscBar').style.width = '50%';
+  document.getElementById('ganDiscLabel').textContent = '\u2014';
+}
+
+function ganSetMode(mode) {
+  ganReset(); ganMode = mode;
+  document.getElementById('ganModeA').style.opacity = mode === 'train' ? '1' : '0.5';
+  document.getElementById('ganModeB').style.opacity = mode === 'infer' ? '1' : '0.5';
+  document.getElementById('ganInsightTrain').style.display = mode === 'train' ? 'block' : 'none';
+  document.getElementById('ganInsightInfer').style.display = mode === 'infer' ? 'block' : 'none';
+}
+
+function ganPlay() {
+  if (ganAnim) return;
+  ganEnsureInit();
+  document.getElementById('ganPlayBtn').disabled = true;
+  const speed = () => parseInt(document.getElementById('ganSpeed').value);
+  function tick() {
+    if (ganState.step >= ganState.steps.length - 1) {
+      ganAnim = null; document.getElementById('ganPlayBtn').disabled = false; return;
+    }
+    ganState.step++;
+    ganRenderStep();
+    const s = ganState.steps[ganState.step];
+    let delay = s.type === 'done' ? 500 : 800;
+    ganAnim = setTimeout(tick, delay / speed());
+  }
+  tick();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1882,6 +2303,7 @@ function hideError() { document.getElementById('errorMsg').classList.remove('vis
 // INIT
 // ═══════════════════════════════════════════════════════
 vaeInit();
+ganReset(); ganSetMode('train');
 diffReset(); arReset(); hybridReset(); compareReset();
 arSetMode('raster');
 initModels();
