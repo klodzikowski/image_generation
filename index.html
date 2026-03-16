@@ -97,6 +97,9 @@
   .timeline { display: flex; align-items: center; gap: 0.3rem; justify-content: center; margin: 1rem 0; flex-wrap: wrap; }
   .timeline .token { width: 38px; height: 38px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: white; transition: all 0.3s; }
   .timeline .arrow { color: var(--muted); font-size: 0.9rem; }
+  /* Larger tokens for Hybrid full-width timeline */
+  #hybridTimeline .token { width: 54px; height: 42px; font-size: 0.75rem; border-radius: 8px; }
+  #hybridTimeline .arrow { font-size: 1.1rem; }
 
   .compare-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; }
   @media (max-width: 700px) { .compare-row { grid-template-columns: 1fr; } }
@@ -112,10 +115,10 @@
 
   /* Step log — real-time description of what's happening */
   .step-log { background: #0a0f1a; color: #94a3b8; border-radius: 8px; padding: 1rem 1.2rem; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.82rem; line-height: 1.8; max-height: 280px; overflow-y: auto; flex: 1; }
-  .step-log .log-line { opacity: 0.45; margin-bottom: 0.3rem; }
+  .step-log .log-line { opacity: 0.7; margin-bottom: 0.3rem; color: #cbd5e1; }
   .step-log .log-line.active { opacity: 1; color: #f1f5f9; font-size: 0.85rem; }
   .step-log .log-line .log-step { color: #60a5fa; font-weight: 700; }
-  .step-log .log-line .log-highlight { color: #fbbf24; }
+  .step-log .log-line .log-highlight { color: #fbbf24; background: rgba(251, 191, 36, 0.15); padding: 1px 5px; border-radius: 3px; border: 1px solid rgba(251, 191, 36, 0.3); }
 
   /* ── VAE-specific ── */
   .vae-layout { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
@@ -237,7 +240,7 @@
   <div class="tab active-vae" onclick="showPanel('vae')" id="tab-vae">VAE <small style="opacity:0.7">2013</small></div>
   <div class="tab" onclick="showPanel('gan')" id="tab-gan">GAN <small style="opacity:0.7">2014</small></div>
   <div class="tab" onclick="showPanel('diff')" id="tab-diff">Diffusion <small style="opacity:0.7">2020</small></div>
-  <div class="tab" onclick="showPanel('live')" id="tab-live">Live Generation</div>
+  <div class="tab" onclick="showPanel('live')" id="tab-live">Diffusion Demo</div>
   <div class="tab" onclick="showPanel('ar')" id="tab-ar">Autoregressive <small style="opacity:0.7">2021&ndash;2024</small></div>
   <div class="tab" onclick="showPanel('hybrid')" id="tab-hybrid">Hybrid / Transfusion <small style="opacity:0.7">2024+</small></div>
   <div class="tab" onclick="showPanel('compare')" id="tab-compare">Compare All</div>
@@ -513,13 +516,16 @@
     <p>Introduced by <a href="https://arxiv.org/abs/2408.11039" target="_blank" style="color:var(--green)">Meta (2024)</a>. A single transformer handles <strong>both text and images</strong> with two objectives: cross-entropy (next-word prediction) for text tokens, MSE diffusion loss (how close is the predicted noise to the actual noise?) for image patches. This is believed to be the architecture behind <strong>GPT-4o</strong> image generation, Google's <strong>Gemini</strong> image models, and Apple's on-device image generation in <strong>Apple Intelligence</strong>.</p>
 
     <div class="demo-area">
-      <div class="demo-layout">
+      <!-- Full-width token timeline -->
+      <div class="timeline" id="hybridTimeline" style="margin:1rem 0 0.5rem;justify-content:flex-start;"></div>
+      <div class="step-label" id="hybridStepLabel" style="text-align:center;">Press Play or use &#9654; to step through the pipeline</div>
+
+      <!-- Canvas + log side by side below -->
+      <div class="demo-layout" style="margin-top:0.8rem;">
         <div class="demo-visual">
-          <div class="timeline" id="hybridTimeline"></div>
-          <canvas id="hybridCanvas" width="256" height="256" style="width:256px;height:256px;margin-top:1rem;"></canvas>
-          <div class="step-label" id="hybridStepLabel">Press Generate to see the full pipeline</div>
+          <canvas id="hybridCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
           <div class="controls" style="margin-top:0.8rem;">
-            <select id="hybridSubject">
+            <select id="hybridSubject" onchange="hybridReset(); hybridEnsureInit();">
               <option value="cat">Draw a cat on a rainbow</option>
               <option value="city">Show me a futuristic city</option>
               <option value="mountain">Create a mountain landscape</option>
@@ -548,8 +554,8 @@
     <ol style="margin:0.5rem 0;padding-left:1.4rem;">
       <li><strong>Unified sequence:</strong> Text tokens and image patches live in the same sequence. Special <strong>BOI</strong> (Begin of Image) and <strong>EOI</strong> (End of Image) markers signal where images start and end.</li>
       <li><strong>Dual training objective:</strong> Text tokens use standard cross-entropy (next-token prediction). Image patches use diffusion MSE loss (predict the noise). Same transformer, two losses.</li>
-      <li><strong>Text &rarr; sequential, Image &rarr; parallel:</strong> The model generates text tokens one at a time (autoregressive). When it emits BOI, it switches to parallel diffusion mode &mdash; all image patches are denoised simultaneously over a few steps.</li>
-      <li><strong>Back to text:</strong> After EOI, the model continues generating text autoregressively (e.g., a caption, follow-up message).</li>
+      <li><strong>Text &rarr; sequential, Image &rarr; parallel:</strong> The model <em>reads</em> your prompt word-by-word (building up context), then when it emits BOI it switches to parallel diffusion mode &mdash; all image patches are denoised simultaneously over a few steps, guided by the prompt context.</li>
+      <li><strong>Back to text:</strong> After EOI, the model can continue generating text autoregressively (e.g., &ldquo;Here&rsquo;s your image!&rdquo;).</li>
     </ol>
 
     <div class="insight insight-green">
@@ -562,7 +568,7 @@
 <div class="panel" id="panel-compare">
   <div class="card">
     <h2>Side-by-Side Comparison</h2>
-    <p>Watch all three approaches generate the same image simultaneously. Notice how differently the image "appears":</p>
+    <p>These are all modern methods used in production today. Watch all three generate the same image simultaneously &mdash; notice how differently the image "appears":</p>
 
     <div class="controls" style="margin-bottom:1rem;">
       <select id="compareSubject">
@@ -618,8 +624,8 @@
       </div>
     </div>
 
-    <h2>Generate real images with AI models</h2>
-    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem;">Choose a model, write a prompt, and generate real images via HuggingFace Inference API. <a href="https://huggingface.co/" target="_blank" style="color:var(--cyan);">HuggingFace</a> is a platform that hosts open-source AI models &mdash; you need a free account token to call their API.</p>
+    <h2>Diffusion Demo &mdash; Generate real images</h2>
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem;">Try the diffusion models from the previous tab for real. Choose a model, write a prompt, and generate images via the <a href="https://huggingface.co/" target="_blank" style="color:var(--cyan);">HuggingFace</a> Inference API (a platform that hosts open-source AI models &mdash; you need a free account token).</p>
 
     <div class="live-two-col">
       <div class="live-controls">
@@ -1149,10 +1155,8 @@ function vaeDrawLatentSpace(highlightZ) {
   }
 }
 
-function vaeDecode(z) {
+function vaeDecode(z, noNoise) {
   // Find closest digit clusters and interpolate
-  const RANGE = 3;
-  let minDist = Infinity;
   let closest = [];
 
   for (let d = 0; d < 10; d++) {
@@ -1174,9 +1178,11 @@ function vaeDecode(z) {
     for (let i = 0; i < result.length; i++) result[i] += bmp[i] * w;
   }
 
-  // Add slight noise for "generation" effect
-  for (let i = 0; i < result.length; i++) {
-    result[i] = Math.min(1, Math.max(0, result[i] + (Math.random() - 0.5) * 0.05));
+  // Add slight noise for "generation" effect (skip for interpolation strip)
+  if (!noNoise) {
+    for (let i = 0; i < result.length; i++) {
+      result[i] = Math.min(1, Math.max(0, result[i] + (Math.random() - 0.5) * 0.05));
+    }
   }
   return result;
 }
@@ -1255,13 +1261,14 @@ function vaeUpdateInterp() {
   const bmpFrom = digitBitmaps[fromDigit][0];
   const bmpTo = digitBitmaps[toDigit][0];
 
-  // Draw strip of interpolated images via direct pixel blending
+  // Draw strip of interpolated images by walking through latent space
   const strip = document.getElementById('vaeInterpStrip');
   strip.innerHTML = '';
   const STEPS = 9;
   for (let i = 0; i <= STEPS; i++) {
     const tt = i / STEPS;
-    const bmp = vaeBlendBitmaps(bmpFrom, bmpTo, tt);
+    const zInterp = [zFrom[0]*(1-tt) + zTo[0]*tt, zFrom[1]*(1-tt) + zTo[1]*tt];
+    const bmp = vaeDecode(zInterp, true);
     const c = document.createElement('canvas');
     c.width = 28; c.height = 28; c.style.width = '40px'; c.style.height = '40px';
     c.style.borderRadius = '4px'; c.style.imageRendering = 'pixelated';
@@ -1271,8 +1278,8 @@ function vaeUpdateInterp() {
     strip.appendChild(c);
   }
 
-  // Update main output with blended bitmap
-  const decoded = vaeBlendBitmaps(bmpFrom, bmpTo, t);
+  // Update main output by decoding from the interpolated latent position
+  const decoded = vaeDecode(z);
   vaeDrawDigit(document.getElementById('vaeOutputCanvas'), decoded);
   vaeDrawLatentSpace(z);
 }
@@ -1747,8 +1754,8 @@ function hybridReset() {
   const ctx=document.getElementById('hybridCanvas').getContext('2d');
   ctx.clearRect(0,0,256,256); ctx.fillStyle='#1e293b'; ctx.fillRect(0,0,256,256);
   document.getElementById('hybridTimeline').innerHTML='';
-  document.getElementById('hybridStepLabel').textContent='Press Generate';
-  document.getElementById('hybridLog').innerHTML='<div class="log-line active"><span class="log-step">[ready]</span> Transfusion: a single transformer handles BOTH text (cross-entropy) and images (diffusion MSE).</div>';
+  document.getElementById('hybridStepLabel').textContent='Press Play or use \u25b6 to step through the pipeline';
+  document.getElementById('hybridLog').innerHTML='<div class="log-line active"><span class="log-step">[ready]</span> Follow the token sequence above. The model reads your prompt, then switches to diffusion for the image.</div>';
   document.getElementById('hybridPlayBtn').disabled=false;
   document.getElementById('hybridPrevBtn').disabled=true;
   document.getElementById('hybridNextBtn').disabled=false;
@@ -2304,7 +2311,7 @@ function hideError() { document.getElementById('errorMsg').classList.remove('vis
 // ═══════════════════════════════════════════════════════
 vaeInit();
 ganReset(); ganSetMode('train');
-diffReset(); arReset(); hybridReset(); compareReset();
+diffReset(); arReset(); hybridReset(); hybridEnsureInit(); compareReset();
 arSetMode('raster');
 initModels();
 initToken();
