@@ -557,7 +557,7 @@
     </ol>
 
     <div class="insight insight-green">
-      <strong>Why this is the dominant approach:</strong> One model, one set of weights, understands both language and vision natively. The same transformer backbone handles text and images &mdash; no separate generation pipeline needed. The image appears <em>all at once</em> (parallel diffusion), not pixel-by-pixel. This is why GPT-4o, Gemini, and Apple Intelligence can seamlessly mix text and images in a single conversation.
+      <strong>Why this is the dominant approach:</strong> One model, one set of weights, understands both language and vision natively. The same transformer backbone handles text and images &mdash; no separate generation pipeline needed. The image appears <em>all at once</em> (parallel diffusion on latent patches), not token-by-token. This is why GPT-4o, Gemini, and Apple Intelligence can seamlessly mix text and images in a single conversation.
     </div>
   </div>
 </div>
@@ -605,7 +605,12 @@
     </div>
 
     <div class="insight">
-      <strong>The key takeaway:</strong> "Autoregressive image generation" does <em>not</em> mean the image appears pixel by pixel like a typewriter. Only the obsolete raster-scan approach (DALL-E 1) worked that way. Modern AR models generate coarse-to-fine (VAR) or use diffusion for the actual pixels (Transfusion/GPT-4o). <strong>Who uses what:</strong> Diffusion &rarr; Stable Diffusion, Midjourney, DALL-E 3. Hybrid/Transfusion &rarr; GPT-4o, Gemini, Apple Intelligence.
+      <strong>The key takeaway:</strong> None of these methods work on raw pixels &mdash; they all operate in a compressed latent/token space (from a VAE or VQ-VAE) and decode to pixels at the end. "Autoregressive image generation" does <em>not</em> mean the image appears token by token like a typewriter. Only the obsolete raster-scan approach (DALL-E 1, which was autoregressive &mdash; not diffusion) worked that way. Modern AR models generate coarse-to-fine (VAR) or use diffusion for the image patches (Transfusion/GPT-4o).
+      <br><br><strong>Who uses what:</strong>
+      <ul style="margin:0.3rem 0 0 1.2rem;">
+        <li><strong>Diffusion:</strong> Stable Diffusion, Midjourney, DALL-E 2 &amp; 3</li>
+        <li><strong>Hybrid / Transfusion:</strong> GPT-4o, Gemini, Apple Intelligence</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -1630,7 +1635,7 @@ function hybridEnsureInit() {
   ctx.fillStyle = '#94a3b8'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
   ctx.fillText('Waiting for text generation...', SIZE/2, SIZE/2);
   document.getElementById('hybridLog').innerHTML = '';
-  hybridLogAppend('init', 'Transfusion model processes prompt as text tokens via autoregressive LM objective.');
+  hybridLogAppend('init', 'Transfusion model reads the prompt as text tokens (input context, not generated).');
 }
 
 function hybridRenderStep() {
@@ -1652,7 +1657,7 @@ function hybridRenderStep() {
 
   // Rebuild log from scratch
   document.getElementById('hybridLog').innerHTML = '';
-  hybridLogAppend('init', 'Transfusion model processes prompt as text tokens via autoregressive LM objective.');
+  hybridLogAppend('init', 'Transfusion model reads the prompt as text tokens (input context, not generated).');
   let loggedFirstText = false, loggedLastText = false, loggedBoi = false;
   let loggedDiffStart = false, loggedDiffMid = false, loggedDiffDone = false;
   let loggedEoi = false, loggedFinish = false;
@@ -1661,7 +1666,7 @@ function hybridRenderStep() {
     const s = steps[i];
     if (s.type === 'text' && s.isFirst && !loggedFirstText) {
       loggedFirstText = true;
-      hybridLogAppend('text', `Predicting text tokens autoregressively: "${s.word}" \u2014 standard next-token prediction.`);
+      hybridLogAppend('text', `Reading prompt token: "${s.word}" \u2014 building up context for image generation.`);
     }
     if (s.type === 'text' && s.isLast && !loggedLastText) {
       loggedLastText = true;
@@ -1687,9 +1692,12 @@ function hybridRenderStep() {
       loggedEoi = true;
       hybridLogAppend('EOI', 'EOI token: back to text mode. Model can now discuss the image it generated.');
     }
-    if (s.type === 'post-text' && s.isLast && !loggedFinish) {
+    if (s.type === 'post-text' && !loggedFinish) {
       loggedFinish = true;
-      hybridLogAppend('finish', 'Complete! One model, dual objective: cross-entropy (text) + MSE (images).');
+      hybridLogAppend('text', 'Now generating response text autoregressively (standard next-token prediction).');
+    }
+    if (s.type === 'post-text' && s.isLast) {
+      hybridLogAppend('finish', 'Complete! One model, dual objective: cross-entropy (text) + MSE diffusion (images).');
     }
   }
 
@@ -2080,18 +2088,24 @@ function comparePlay(){
   }
   compareAnims[0]=requestAnimationFrame(diffTick);
 
-  const scales=[1,2,4,8,16,24]; let scaleIdx=0,tokenInScale=0;
+  const scales=[1,2,4,8,16,32]; let scaleIdx=0,tokenInScale=0;
   const arCanvas=document.getElementById('cmpArCanvas'),arCtx=arCanvas.getContext('2d');
   arCtx.fillStyle='#1e293b';arCtx.fillRect(0,0,SIZE,SIZE);
   function arTick(){
-    if(scaleIdx>=scales.length){document.getElementById('cmpArLabel').textContent=`Done (${scales.length} scales)`;return;}
+    if(scaleIdx>=scales.length){
+      // Final pass: draw target at full resolution for crisp result
+      const tmpC=document.createElement('canvas');tmpC.width=tmpC.height=SIZE;
+      const tmpCtx=tmpC.getContext('2d');tmpCtx.putImageData(new ImageData(target,SIZE,SIZE),0,0);
+      arCtx.drawImage(tmpC,0,0);
+      document.getElementById('cmpArLabel').textContent=`Done (${scales.length} scales)`;return;
+    }
     const scale=scales[scaleIdx],blockSize=SIZE/scale,totalTokens=scale*scale;
     const tokensPerFrame=Math.max(1,Math.round(totalTokens/(12/speed())));
     for(let s=0;s<tokensPerFrame&&tokenInScale<totalTokens;s++,tokenInScale++){
       const gx=tokenInScale%scale,gy=Math.floor(tokenInScale/scale),px=gx*blockSize,py=gy*blockSize;
       let rr=0,gg=0,bb=0,count=0;
-      for(let dy=0;dy<blockSize&&(py+dy)<SIZE;dy+=Math.max(1,Math.floor(blockSize/6))){
-        for(let dx=0;dx<blockSize&&(px+dx)<SIZE;dx+=Math.max(1,Math.floor(blockSize/6))){
+      for(let dy=0;dy<blockSize&&(py+dy)<SIZE;dy++){
+        for(let dx=0;dx<blockSize&&(px+dx)<SIZE;dx++){
           const ti=((py+dy)*SIZE+(px+dx))*4; rr+=target[ti];gg+=target[ti+1];bb+=target[ti+2];count++;
         }
       }
