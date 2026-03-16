@@ -230,7 +230,7 @@
 
 <div class="header">
   <h1>LMT Image Generation Lab</h1>
-  <p>Interactive demos of every major image generation paradigm.</p>
+  <p>Interactive demos of every major image generation approach. Follow the tabs left &rarr; right for the historical evolution.</p>
 </div>
 
 <div class="tabs">
@@ -247,7 +247,7 @@
 <div class="panel visible" id="panel-vae">
   <div class="card">
     <h2>Variational Autoencoder (VAE) <span class="badge badge-rose">Foundation</span></h2>
-    <p>Introduced by <a href="https://arxiv.org/abs/1312.6114" target="_blank" style="color:var(--rose)">Kingma &amp; Welling (2013)</a>. A VAE learns to compress images into a tiny <strong>latent space</strong>, then reconstruct them. Instead of memorising images pixel-by-pixel, it learns a smooth, continuous space where similar images are nearby. This is the foundation for almost all modern generative models.</p>
+    <p>Introduced by <a href="https://arxiv.org/abs/1312.6114" target="_blank" style="color:var(--rose)">Kingma &amp; Welling (2013)</a>. A VAE learns to compress images into a tiny <strong>latent space</strong> (a compact, hidden representation &mdash; think of it as a "summary" of the image in just a few numbers), then reconstruct them. Instead of memorising images pixel-by-pixel, it learns a smooth, continuous space where similar images are nearby. This is the foundation for almost all modern generative models.</p>
 
     <div class="demo-area">
       <div class="vae-layout">
@@ -370,7 +370,7 @@
 
     <h3>How GAN training works</h3>
     <ol style="margin:0.5rem 0;padding-left:1.4rem;">
-      <li><strong>Discriminator step:</strong> Feed the Discriminator a mix of real images and Generator fakes. It learns to classify them (real vs fake) using binary cross-entropy loss. Backprop updates <em>only</em> the Discriminator's weights.</li>
+      <li><strong>Discriminator step:</strong> Feed the Discriminator a mix of real images and Generator fakes. It learns to classify them (real vs fake) using cross-entropy (a standard classification loss). Backprop updates <em>only</em> the Discriminator's weights.</li>
       <li><strong>Generator step:</strong> The Generator creates fakes and labels them as <em>real</em>. The Discriminator evaluates them. The cross-entropy loss is backpropagated through the frozen Discriminator to update <em>only</em> the Generator's weights &mdash; teaching it to make more convincing fakes.</li>
       <li><strong>Repeat:</strong> Alternate these two steps. The Generator gets better at fooling; the Discriminator gets better at detecting. This adversarial dynamic drives both networks to improve.</li>
       <li><strong>Ship it:</strong> Once training converges, discard the Discriminator. The Generator alone is the final model.</li>
@@ -447,7 +447,7 @@
 <div class="panel" id="panel-ar">
   <div class="card">
     <h2>Autoregressive: Treating Images as Language <span class="badge badge-purple">Key building block</span></h2>
-    <p>First: tokenise the image into discrete codes using a <strong>VQ-VAE</strong> (Vector Quantised VAE). Then: predict tokens sequentially with a transformer, just like predicting words. The key question is <em>in what order</em>.</p>
+    <p>First: tokenise the image into discrete codes using a <strong>VQ-VAE</strong> (a variant of the VAE from Tab 1, but with a fixed codebook of discrete tokens instead of continuous values). Then: predict tokens sequentially with a transformer, just like predicting words. The key question is <em>in what order</em>.</p>
 
     <div class="controls" style="margin-bottom:0.5rem;">
       <button class="btn btn-purple" id="arModeA" onclick="arSetMode('raster')">A. Raster Scan (2021, obsolete)</button>
@@ -489,7 +489,7 @@
     </div>
 
     <div id="arInsightVar" class="insight insight-purple" style="display:none;">
-      <strong>Next-Scale / VAR (<a href="https://arxiv.org/abs/2404.02905" target="_blank" style="color:var(--purple)">Tian et al., NeurIPS 2024 Best Paper</a>):</strong> Instead of raster order, generate coarse-to-fine: 1&times;1 &rarr; 2&times;2 &rarr; 4&times;4 &rarr; &hellip; &rarr; full resolution. At each scale, <em>all tokens are generated in parallel</em>. Only ~10 autoregressive steps total. <strong>20&times; faster than diffusion</strong>, FID 1.73 on ImageNet 256&times;256. Follows a power-law scaling relationship (r &asymp; &minus;0.998).
+      <strong>Next-Scale / VAR (<a href="https://arxiv.org/abs/2404.02905" target="_blank" style="color:var(--purple)">Tian et al., NeurIPS 2024 Best Paper</a>):</strong> Instead of raster order, generate coarse-to-fine: 1&times;1 &rarr; 2&times;2 &rarr; 4&times;4 &rarr; &hellip; &rarr; full resolution. At each scale, <em>all tokens are generated in parallel</em>. Only ~10 autoregressive steps total. <strong>20&times; faster than diffusion</strong> with state-of-the-art image quality, and it keeps improving predictably as you scale up the model.
     </div>
 
     <h3>How it works</h3>
@@ -510,7 +510,7 @@
 <div class="panel" id="panel-hybrid">
   <div class="card">
     <h2>Hybrid / Transfusion <span class="badge badge-green">Dominant approach (2025+)</span></h2>
-    <p>Introduced by <a href="https://arxiv.org/abs/2408.11039" target="_blank" style="color:var(--green)">Meta (2024)</a>. A single transformer handles <strong>both text and images</strong> with two objectives: cross-entropy for text tokens, MSE diffusion loss for image patches. This is believed to be the architecture behind <strong>GPT-4o</strong> image generation, Google's <strong>Gemini</strong> image models, and Apple's on-device image generation in <strong>Apple Intelligence</strong>.</p>
+    <p>Introduced by <a href="https://arxiv.org/abs/2408.11039" target="_blank" style="color:var(--green)">Meta (2024)</a>. A single transformer handles <strong>both text and images</strong> with two objectives: cross-entropy (next-word prediction) for text tokens, MSE diffusion loss (how close is the predicted noise to the actual noise?) for image patches. This is believed to be the architecture behind <strong>GPT-4o</strong> image generation, Google's <strong>Gemini</strong> image models, and Apple's on-device image generation in <strong>Apple Intelligence</strong>.</p>
 
     <div class="demo-area">
       <div class="demo-layout">
@@ -601,7 +601,7 @@
     </div>
 
     <div class="insight">
-      <strong>The key takeaway:</strong> "Autoregressive image generation" does <em>not</em> mean the image appears pixel by pixel like a typewriter. Only the obsolete raster-scan approach (DALL-E 1) worked that way. Modern AR models generate coarse-to-fine (VAR) or use diffusion for the actual pixels (Transfusion/GPT-4o).
+      <strong>The key takeaway:</strong> "Autoregressive image generation" does <em>not</em> mean the image appears pixel by pixel like a typewriter. Only the obsolete raster-scan approach (DALL-E 1) worked that way. Modern AR models generate coarse-to-fine (VAR) or use diffusion for the actual pixels (Transfusion/GPT-4o). <strong>Who uses what:</strong> Diffusion &rarr; Stable Diffusion, Midjourney, DALL-E 3. Hybrid/Transfusion &rarr; GPT-4o, Gemini, Apple Intelligence.
     </div>
   </div>
 </div>
@@ -619,7 +619,7 @@
     </div>
 
     <h2>Generate real images with AI models</h2>
-    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem;">Choose a model, write a prompt, and generate real images via HuggingFace Inference API.</p>
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem;">Choose a model, write a prompt, and generate real images via HuggingFace Inference API. <a href="https://huggingface.co/" target="_blank" style="color:var(--cyan);">HuggingFace</a> is a platform that hosts open-source AI models &mdash; you need a free account token to call their API.</p>
 
     <div class="live-two-col">
       <div class="live-controls">
