@@ -401,7 +401,7 @@
       <div class="demo-layout">
         <div class="demo-visual">
           <canvas id="diffCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
-          <div class="step-label" id="diffStepLabel">Step 1 / 50 &mdash; Pure noise</div>
+          <div class="step-label" id="diffStepLabel">Step 1 / 30 &mdash; Pure noise</div>
           <div class="controls" style="margin-top:0.8rem;">
             <select id="diffSubject">
               <option value="cat">A cat on a rainbow</option>
@@ -1328,20 +1328,20 @@ function vaeInit() {
 // ═══════════════════════════════════════════════════════
 let diffAnim = null;
 let diffLastLogStep = -1;
-let diffState = { noise: null, target: null, step: 0, TOTAL: 50 };
+let diffState = { noise: null, target: null, step: 0, TOTAL: 30 };
 const diffLogMessages = [
   [0,  'Starting from pure Gaussian noise in <span class="log-highlight">latent space</span> (compressed by a VAE encoder).'],
-  [3,  'U-Net/Transformer receives noisy latent + text embedding via cross-attention.'],
-  [6,  'Network predicts noise \u03b5 present at this timestep.'],
-  [10, 'Predicted noise subtracted \u2192 x\u209c\u208b\u2081. Global colour palette emerging in latent space.'],
-  [15, 'Low-frequency structure locked in: sky vs ground, foreground vs background.'],
-  [20, 'Classifier-free guidance amplifies prompt-relevant features.'],
-  [25, 'Mid-frequency details forming: object shapes, edges, contours.'],
-  [30, 'Spatial relationships solidifying. Composition is clear.'],
-  [35, 'High-frequency details: textures, patterns, fine edges.'],
-  [40, 'Final refinement passes \u2014 sharpening edges, adding micro-detail.'],
-  [45, 'Almost done \u2014 last few steps add subtle texture and polish.'],
-  [50, 'Denoising complete! Final latent decoded to pixels by <span class="log-highlight">VAE decoder</span>. Noise \u2192 latent \u2192 image.'],
+  [2,  'U-Net/Transformer receives noisy latent + text embedding via cross-attention.'],
+  [4,  'Network predicts noise \u03b5 present at this timestep.'],
+  [6,  'Predicted noise subtracted \u2192 x\u209c\u208b\u2081. Global colour palette emerging in latent space.'],
+  [9,  'Low-frequency structure locked in: sky vs ground, foreground vs background.'],
+  [12, 'Classifier-free guidance amplifies prompt-relevant features.'],
+  [15, 'Mid-frequency details forming: object shapes, edges, contours.'],
+  [18, 'Spatial relationships solidifying. Composition is clear.'],
+  [21, 'High-frequency details: textures, patterns, fine edges.'],
+  [25, 'Final refinement passes \u2014 sharpening edges, adding micro-detail.'],
+  [28, 'Almost done \u2014 last few steps add subtle texture and polish.'],
+  [30, 'Denoising complete! Final latent decoded to pixels by <span class="log-highlight">VAE decoder</span>. Noise \u2192 latent \u2192 image.'],
 ];
 
 function diffReset() {
@@ -1376,12 +1376,12 @@ function diffRenderStep() {
   drawPixels(canvas, blendPixels(noise, target, tE, SIZE), SIZE);
   const s = Math.round(step);
   let desc='Pure noise';
-  if(s>0&&s<=10) desc='Layout & colours emerging';
-  else if(s>10&&s<=25) desc='Shapes forming';
-  else if(s>25&&s<=40) desc='Refining details';
-  else if(s>40&&s<50) desc='Final polish';
-  else if(s>=50) desc='Complete!';
-  document.getElementById('diffStepLabel').textContent = `Step ${s} / 50 \u2014 ${desc}`;
+  if(s>0&&s<=6) desc='Layout & colours emerging';
+  else if(s>6&&s<=15) desc='Shapes forming';
+  else if(s>15&&s<=24) desc='Refining details';
+  else if(s>24&&s<30) desc='Final polish';
+  else if(s>=30) desc='Complete!';
+  document.getElementById('diffStepLabel').textContent = `Step ${s} / ${TOTAL} \u2014 ${desc}`;
   // Update log
   const log = document.getElementById('diffLog');
   for (const [threshold, msg] of diffLogMessages) {
@@ -2077,14 +2077,14 @@ function comparePlay(){
   const target=makeTargetImage(subject,SIZE), noise=makeNoise(SIZE);
   const speed=()=>parseInt(document.getElementById('compareSpeed').value);
 
-  let diffStep=0; const DIFF_TOTAL=50;
+  let diffStep=0; const DIFF_TOTAL=30;
   function diffTick(){
     diffStep+=speed()*0.15; if(diffStep>DIFF_TOTAL) diffStep=DIFF_TOTAL;
     const t=1-Math.pow(1-diffStep/DIFF_TOTAL,2.5);
     drawPixels(document.getElementById('cmpDiffCanvas'),blendPixels(noise,target,t,SIZE),SIZE);
-    document.getElementById('cmpDiffLabel').textContent=`Step ${Math.round(diffStep)}/50`;
+    document.getElementById('cmpDiffLabel').textContent=`Step ${Math.round(diffStep)}/${DIFF_TOTAL}`;
     if(diffStep<DIFF_TOTAL) compareAnims[0]=requestAnimationFrame(diffTick);
-    else document.getElementById('cmpDiffLabel').textContent='Done (50 steps)';
+    else document.getElementById('cmpDiffLabel').textContent='Done (30 steps)';
   }
   compareAnims[0]=requestAnimationFrame(diffTick);
 
