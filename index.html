@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Image Generation Lab — LMT Course</title>
+<title>LMT Image Generation Lab</title>
 <style>
   :root {
     --blue: #2563eb; --blue-light: #eff6ff; --blue-border: #bfdbfe;
@@ -100,6 +100,13 @@
   .ext-link:hover { text-decoration: underline; }
 
   select { padding: 0.4rem 0.8rem; border-radius: 6px; border: 2px solid var(--border); font-size: 0.85rem; background: white; }
+
+  /* Step log — real-time description of what's happening */
+  .step-log { background: #0f172a; color: #94a3b8; border-radius: 8px; padding: 0.8rem 1rem; margin-top: 0.8rem; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.78rem; line-height: 1.7; max-height: 160px; overflow-y: auto; }
+  .step-log .log-line { opacity: 0.5; }
+  .step-log .log-line.active { opacity: 1; color: #e2e8f0; }
+  .step-log .log-line .log-step { color: #60a5fa; font-weight: 600; }
+  .step-log .log-line .log-highlight { color: #fbbf24; }
 
   /* ── VAE-specific ── */
   .vae-layout { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
@@ -207,15 +214,15 @@
 <body>
 
 <div class="header">
-  <h1>AI Image Generation Lab</h1>
-  <p>From VAEs to diffusion to real model inference. Interactive demos of every major generation paradigm, plus live generation with state-of-the-art models.</p>
+  <h1>LMT Image Generation Lab</h1>
+  <p>Interactive demos of every major image generation paradigm.</p>
 </div>
 
 <div class="tabs">
-  <div class="tab active-vae" onclick="showPanel('vae')" id="tab-vae">VAE</div>
-  <div class="tab" onclick="showPanel('diff')" id="tab-diff">Diffusion</div>
-  <div class="tab" onclick="showPanel('ar')" id="tab-ar">Autoregressive</div>
-  <div class="tab" onclick="showPanel('hybrid')" id="tab-hybrid">Hybrid / Transfusion</div>
+  <div class="tab active-vae" onclick="showPanel('vae')" id="tab-vae">VAE <small style="opacity:0.7">'13</small></div>
+  <div class="tab" onclick="showPanel('diff')" id="tab-diff">Diffusion <small style="opacity:0.7">'20</small></div>
+  <div class="tab" onclick="showPanel('ar')" id="tab-ar">Autoregressive <small style="opacity:0.7">'21&ndash;'24</small></div>
+  <div class="tab" onclick="showPanel('hybrid')" id="tab-hybrid">Hybrid / Transfusion <small style="opacity:0.7">'24+</small></div>
   <div class="tab" onclick="showPanel('compare')" id="tab-compare">Compare All</div>
   <div class="tab" onclick="showPanel('live')" id="tab-live">Live Generation</div>
 </div>
@@ -291,11 +298,14 @@
 <div class="panel" id="panel-diff">
   <div class="card">
     <h2>Diffusion: Learning to Denoise <span class="badge badge-blue">Most Mature</span></h2>
-    <p>A diffusion model starts from pure random noise and iteratively removes it, guided by the text prompt. Each step makes the image a little cleaner. Watch it happen:</p>
+    <p>Introduced by <a href="https://arxiv.org/abs/2006.11239" target="_blank" style="color:var(--blue)">Ho et al. (2020)</a>. A diffusion model starts from pure Gaussian noise and iteratively removes it, guided by the text prompt. Models: <strong>Stable Diffusion</strong>, <strong>DALL-E 2/3</strong>, <strong>Imagen</strong>, <strong>FLUX</strong>.</p>
 
     <div class="demo-area">
       <canvas id="diffCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
-      <div class="step-label" id="diffStepLabel">Step 0 / 50 — Pure noise</div>
+      <div class="step-label" id="diffStepLabel">Step 0 / 50 &mdash; Pure noise</div>
+      <div class="step-log" id="diffLog">
+        <div class="log-line active"><span class="log-step">[ready]</span> Press Generate to start the denoising process.</div>
+      </div>
       <div class="controls">
         <select id="diffSubject">
           <option value="cat">A cat on a rainbow</option>
@@ -312,12 +322,17 @@
       </div>
     </div>
 
-    <div class="insight">
-      <strong>Key insight:</strong> The model doesn't "draw" the image. It starts with noise and <em>removes</em> it step by step. Early steps establish layout &amp; colour; later steps add texture &amp; fine detail. This is why you can stop early and get a blurry but recognisable image.
-    </div>
+    <h3>How diffusion works &mdash; step by step</h3>
+    <ol style="margin:0.5rem 0;padding-left:1.4rem;">
+      <li><strong>Forward process (training):</strong> Take a real image and gradually add Gaussian noise over T steps until it becomes pure noise. This creates (image, noise-level) training pairs.</li>
+      <li><strong>Neural network learns to denoise:</strong> A U-Net or Transformer is trained to predict the noise &epsilon; present at each step, conditioned on the text prompt (via cross-attention with CLIP/T5 text embeddings).</li>
+      <li><strong>Reverse process (generation):</strong> Start from pure noise x<sub>T</sub>. At each step t, the network predicts &epsilon;, which is subtracted to get a slightly cleaner x<sub>t-1</sub>. Repeat T times.</li>
+      <li><strong>Classifier-free guidance:</strong> Run the network twice &mdash; once with the prompt, once without &mdash; and amplify the difference. Higher guidance = stricter prompt adherence but less diversity.</li>
+    </ol>
 
-    <h3>What's happening at each step?</h3>
-    <p>The neural network (a U-Net or Transformer) looks at the current noisy image + the text prompt and predicts "what noise is present." That predicted noise is subtracted, producing a slightly cleaner image. Repeat 10&ndash;50 times.</p>
+    <div class="insight">
+      <strong>Key insight:</strong> The model doesn't "draw" &mdash; it <em>sculpts noise into an image</em>. Early steps establish global layout and colour palette; later steps refine textures and fine detail. Modern models like FLUX use <em>Rectified Flow</em> (straight-line paths instead of curved) which allows just 1&ndash;4 steps via distillation.
+    </div>
 
     <h3>Try these external demos</h3>
     <a class="ext-link" href="https://poloclub.github.io/diffusion-explainer/" target="_blank">Diffusion Explainer (Georgia Tech) &mdash; interactive Stable Diffusion walkthrough &rarr;</a>
@@ -328,16 +343,19 @@
 <div class="panel" id="panel-ar">
   <div class="card">
     <h2>Autoregressive: Treating Images as Language <span class="badge badge-purple">Fastest-improving</span></h2>
-    <p>Autoregressive models tokenise the image (like words) and predict tokens sequentially. But <strong>"sequential" doesn't mean pixel-by-pixel</strong>. Toggle between the two approaches:</p>
+    <p>First: tokenise the image into discrete codes using a <strong>VQ-VAE</strong> (Vector Quantised VAE). Then: predict tokens sequentially with a transformer, just like predicting words. The key question is <em>in what order</em>.</p>
 
     <div class="controls" style="margin-bottom:0.5rem;">
-      <button class="btn btn-purple" id="arModeA" onclick="arSetMode('raster')" style="opacity:0.5">A. Raster Scan (obsolete)</button>
-      <button class="btn btn-purple" id="arModeB" onclick="arSetMode('var')">B. Next-Scale / VAR (modern)</button>
+      <button class="btn btn-purple" id="arModeA" onclick="arSetMode('raster')">A. Raster Scan (2021, obsolete)</button>
+      <button class="btn btn-purple" id="arModeB" onclick="arSetMode('var')" style="opacity:0.5">B. Next-Scale / VAR (2024)</button>
     </div>
 
     <div class="demo-area">
       <canvas id="arCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
-      <div class="step-label" id="arStepLabel">Select a mode above, then press Generate</div>
+      <div class="step-label" id="arStepLabel">Press Generate to see the difference</div>
+      <div class="step-log" id="arLog">
+        <div class="log-line active"><span class="log-step">[ready]</span> Choose a mode above and press Generate.</div>
+      </div>
       <div class="controls">
         <select id="arSubject">
           <option value="cat">A cat on a rainbow</option>
@@ -354,16 +372,25 @@
       </div>
     </div>
 
-    <div id="arInsightRaster" class="insight insight-purple" style="display:none;">
-      <strong>Raster scan (DALL-E 1, 2021):</strong> Tokens are predicted one by one, left-to-right, top-to-bottom &mdash; like typing a letter. This is slow (1,024 sequential steps) and produces poor spatial coherence because the model can't "see" what's below or to the right. <strong>This approach is obsolete.</strong>
+    <div id="arInsightRaster" class="insight insight-purple">
+      <strong>Raster scan (DALL-E 1, 2021):</strong> Tokens are predicted one by one, left-to-right, top-to-bottom &mdash; like typing a letter. 1,024 sequential steps for a 32&times;32 token grid. Slow, and the model can't "see" what's below or to the right, so spatial coherence is poor. <strong>This approach is obsolete.</strong>
     </div>
 
-    <div id="arInsightVar" class="insight insight-purple">
-      <strong>Next-Scale / VAR (NeurIPS 2024 Best Paper):</strong> The model generates a tiny 1&times;1 thumbnail first, then 2&times;2, then 4&times;4&hellip; up to full resolution. At each scale, <em>all tokens are generated in parallel</em>. Only ~10 autoregressive steps total (scale&rarr;scale), not 1,024. It's like a painter sketching the rough composition first, then adding detail. <strong>20&times; faster than diffusion.</strong>
+    <div id="arInsightVar" class="insight insight-purple" style="display:none;">
+      <strong>Next-Scale / VAR (<a href="https://arxiv.org/abs/2404.02905" target="_blank" style="color:var(--purple)">Tian et al., NeurIPS 2024 Best Paper</a>):</strong> Instead of raster order, generate coarse-to-fine: 1&times;1 &rarr; 2&times;2 &rarr; 4&times;4 &rarr; &hellip; &rarr; full resolution. At each scale, <em>all tokens are generated in parallel</em>. Only ~10 autoregressive steps total. <strong>20&times; faster than diffusion</strong>, FID 1.73 on ImageNet 256&times;256. Follows a power-law scaling relationship (r &asymp; &minus;0.998).
     </div>
 
-    <h3>Try the real thing</h3>
-    <a class="ext-link" href="https://var.vision/demo" target="_blank">VAR interactive demo &mdash; generate images with next-scale prediction &rarr;</a>
+    <h3>How it works</h3>
+    <ol style="margin:0.5rem 0;padding-left:1.4rem;">
+      <li><strong>Tokenisation (VQ-VAE):</strong> A pre-trained encoder maps each image patch to the nearest entry in a learned <em>codebook</em> of ~8,192 discrete tokens. The image becomes a grid of integer IDs.</li>
+      <li><strong>Transformer prediction:</strong> A GPT-style transformer predicts the next token(s), conditioned on class label or text prompt. The key innovation is <em>what "next" means</em>.</li>
+      <li><strong>Decoding:</strong> Token IDs are mapped back to patches via the VQ-VAE decoder, producing the final image.</li>
+    </ol>
+
+    <h3>External links</h3>
+    <a class="ext-link" href="https://arxiv.org/abs/2404.02905" target="_blank">VAR paper (arXiv) &mdash; Visual Autoregressive Modeling: Scalable Image Generation via Next-Scale Prediction &rarr;</a>
+    <br>
+    <a class="ext-link" href="https://var.vision/demo" target="_blank">VAR interactive demo &rarr;</a>
   </div>
 </div>
 
@@ -371,12 +398,15 @@
 <div class="panel" id="panel-hybrid">
   <div class="card">
     <h2>Hybrid / Transfusion <span class="badge badge-green">Dominant approach (2025+)</span></h2>
-    <p>The approach behind GPT-4o and Google's Nano Banana. Text is generated autoregressively (token by token). But when the model decides to produce an image, it generates <strong>all image patches simultaneously via diffusion</strong>.</p>
+    <p>Introduced by <a href="https://arxiv.org/abs/2408.11039" target="_blank" style="color:var(--green)">Meta (2024)</a>. A single transformer handles <strong>both text and images</strong> with two objectives: cross-entropy for text tokens, MSE diffusion loss for image patches. This is believed to be the architecture behind <strong>GPT-4o</strong> image generation and Google's <strong>Gemini</strong> image models.</p>
 
     <div class="demo-area">
       <div class="timeline" id="hybridTimeline"></div>
       <canvas id="hybridCanvas" width="256" height="256" style="width:256px;height:256px;margin-top:1rem;"></canvas>
       <div class="step-label" id="hybridStepLabel">Press Generate to see the full pipeline</div>
+      <div class="step-log" id="hybridLog">
+        <div class="log-line active"><span class="log-step">[ready]</span> Press Generate to watch the Transfusion pipeline.</div>
+      </div>
       <div class="controls">
         <select id="hybridSubject">
           <option value="cat">Draw a cat on a rainbow</option>
@@ -392,8 +422,16 @@
       </div>
     </div>
 
+    <h3>How Transfusion works</h3>
+    <ol style="margin:0.5rem 0;padding-left:1.4rem;">
+      <li><strong>Unified sequence:</strong> Text tokens and image patches live in the same sequence. Special <strong>BOI</strong> (Begin of Image) and <strong>EOI</strong> (End of Image) markers signal where images start and end.</li>
+      <li><strong>Dual training objective:</strong> Text tokens use standard cross-entropy (next-token prediction). Image patches use diffusion MSE loss (predict the noise). Same transformer, two losses.</li>
+      <li><strong>Text &rarr; sequential, Image &rarr; parallel:</strong> The model generates text tokens one at a time (autoregressive). When it emits BOI, it switches to parallel diffusion mode &mdash; all image patches are denoised simultaneously over a few steps.</li>
+      <li><strong>Back to text:</strong> After EOI, the model continues generating text autoregressively (e.g., a caption, follow-up message).</li>
+    </ol>
+
     <div class="insight insight-green">
-      <strong>What's "autoregressive" here?</strong> The <em>decision</em> to create an image and the surrounding text are autoregressive: "Draw" &rarr; "a" &rarr; "cat" &rarr; BOI &rarr; [image] &rarr; EOI &rarr; "Here's your cat&hellip;". But the image itself is generated via parallel diffusion on all patches at once &mdash; like a Polaroid developing. The AR framework is the <em>scaffolding</em>; diffusion is the <em>brush</em>.
+      <strong>Why this is the dominant approach:</strong> One model, one set of weights, understands both language and vision natively. No separate image encoder/decoder pipeline. The image appears <em>all at once</em> (parallel diffusion), not pixel-by-pixel. This is why GPT-4o and Gemini can seamlessly mix text and images in a single conversation.
     </div>
   </div>
 </div>
@@ -647,20 +685,50 @@ function makeTargetImage(subject, size) {
       const nx = x / S, ny = y / S;
       let r, g, b;
       if (subject === 'cat') {
-        const hue = nx * 360;
-        const rainbow = hslToRgb(hue, 0.8, 0.65 + 0.15 * Math.sin(ny * Math.PI));
-        const cx = 0.5, cy = 0.55;
-        const dx = nx - cx, dy = ny - cy;
-        const bodyDist = (dx*dx)/(0.12) + (dy*dy)/(0.08);
-        const headDx = nx - 0.5, headDy = ny - 0.32;
-        const headDist = (headDx*headDx + headDy*headDy) / 0.018;
-        const ear1 = (Math.pow(nx-0.38,2) + Math.pow(ny-0.2,2)) < 0.006;
-        const ear2 = (Math.pow(nx-0.62,2) + Math.pow(ny-0.2,2)) < 0.006;
-        const isCat = bodyDist < 1 || headDist < 1 || ear1 || ear2;
-        const eye1 = Math.hypot(nx-0.44, ny-0.30) < 0.025;
-        const eye2 = Math.hypot(nx-0.56, ny-0.30) < 0.025;
-        if (eye1 || eye2) { r=80; g=220; b=80; }
-        else if (isCat) { r=45; g=42; b=50; }
+        // Rainbow background
+        const hue = (nx * 300 + 20) % 360;
+        const rainbow = hslToRgb(hue, 0.85, 0.6 + 0.1 * Math.sin(ny * Math.PI * 2));
+        // Cat: big round head centered, fat body below, large pointy ears
+        const headCx = 0.5, headCy = 0.42;
+        const headR = 0.16;
+        const headDist = Math.hypot((nx-headCx)/headR, (ny-headCy)/(headR*1.1));
+        // Body (wide oval below head)
+        const bodyCx = 0.5, bodyCy = 0.7;
+        const bodyDist = Math.hypot((nx-bodyCx)/0.18, (ny-bodyCy)/0.14);
+        // Large triangular ears
+        const ear1x = 0.33, ear1y = 0.22;
+        const inEar1 = (ny < 0.38) && (ny > 0.15) && (nx > ear1x - (0.38-ny)*0.5) && (nx < ear1x + (0.38-ny)*0.5);
+        const ear2x = 0.67, ear2y = 0.22;
+        const inEar2 = (ny < 0.38) && (ny > 0.15) && (nx > ear2x - (0.38-ny)*0.5) && (nx < ear2x + (0.38-ny)*0.5);
+        // Inner ears (pink)
+        const innerEar1 = inEar1 && (nx > ear1x - (0.36-ny)*0.3) && (nx < ear1x + (0.36-ny)*0.3) && ny > 0.19;
+        const innerEar2 = inEar2 && (nx > ear2x - (0.36-ny)*0.3) && (nx < ear2x + (0.36-ny)*0.3) && ny > 0.19;
+        const isCat = headDist < 1 || bodyDist < 1 || inEar1 || inEar2;
+        // Eyes (large, almond-shaped)
+        const eye1 = Math.hypot((nx-0.42)/0.035, (ny-0.40)/0.025) < 1;
+        const eye2 = Math.hypot((nx-0.58)/0.035, (ny-0.40)/0.025) < 1;
+        const pupil1 = Math.hypot((nx-0.42)/0.015, (ny-0.40)/0.02) < 1;
+        const pupil2 = Math.hypot((nx-0.58)/0.015, (ny-0.40)/0.02) < 1;
+        // Nose (small pink triangle)
+        const nose = Math.hypot(nx-0.5, ny-0.48) < 0.015;
+        // Mouth
+        const mouth = ny > 0.49 && ny < 0.52 && (Math.abs(nx-0.5) < 0.04) && (ny > 0.49 + Math.abs(nx-0.5)*0.5);
+        // Whiskers (thin lines)
+        const whiskerL = Math.abs(ny - (0.47 + (nx-0.35)*0.15)) < 0.004 && nx > 0.15 && nx < 0.38;
+        const whiskerR = Math.abs(ny - (0.47 - (nx-0.65)*0.15)) < 0.004 && nx > 0.62 && nx < 0.85;
+        const whiskerL2 = Math.abs(ny - (0.50 + (nx-0.35)*0.05)) < 0.004 && nx > 0.15 && nx < 0.38;
+        const whiskerR2 = Math.abs(ny - (0.50 - (nx-0.65)*0.05)) < 0.004 && nx > 0.62 && nx < 0.85;
+        // Tail (curved)
+        const tailT = (nx - 0.68) / 0.25;
+        const tailCurve = 0.62 - 0.12 * Math.sin(tailT * Math.PI);
+        const inTail = nx > 0.68 && nx < 0.93 && Math.abs(ny - tailCurve) < 0.02;
+        if (pupil1 || pupil2) { r=20; g=20; b=20; }
+        else if (eye1 || eye2) { r=100; g=220; b=80; }
+        else if (nose) { r=255; g=150; b=160; }
+        else if (mouth) { r=60; g=50; b=55; }
+        else if (innerEar1 || innerEar2) { r=230; g=160; b=170; }
+        else if (whiskerL || whiskerR || whiskerL2 || whiskerR2) { r=200; g=200; b=210; }
+        else if (isCat || inTail) { r=70; g=65; b=80; }
         else { r=rainbow[0]; g=rainbow[1]; b=rainbow[2]; }
       } else if (subject === 'city') {
         const skyR=20+40*ny, skyG=10+30*ny, skyB=80+120*(1-ny);
@@ -716,82 +784,153 @@ function makeTargetImage(subject, size) {
 // VAE DEMO — MNIST-style
 // ═══════════════════════════════════════════════════════
 
-// Pre-baked 28x28 MNIST-like digit templates (stored as compact arrays)
-// Each digit is a 28x28 grid of 0-255 grayscale values, stored as strokes for compactness
 const VAE_SIZE = 28;
 
-function makeDigitBitmap(digit) {
-  const grid = new Float32Array(VAE_SIZE * VAE_SIZE);
-  // Draw digits using simple strokes (circles, lines, arcs)
-  function setPixel(x, y, v) {
-    const ix = Math.round(x), iy = Math.round(y);
-    if (ix >= 0 && ix < VAE_SIZE && iy >= 0 && iy < VAE_SIZE) {
-      grid[iy * VAE_SIZE + ix] = Math.max(grid[iy * VAE_SIZE + ix], v);
-    }
-  }
-  function drawLine(x0, y0, x1, y1, w) {
-    const steps = Math.max(Math.abs(x1-x0), Math.abs(y1-y0)) * 3;
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const x = x0 + (x1-x0)*t, y = y0 + (y1-y0)*t;
-      for (let dy = -w; dy <= w; dy++) {
-        for (let dx = -w; dx <= w; dx++) {
-          if (dx*dx+dy*dy <= w*w) setPixel(x+dx, y+dy, Math.max(0.6, 1 - (dx*dx+dy*dy)/(w*w+1)));
+// High-quality MNIST-like digit renderer using bezier curves and anti-aliased strokes
+function makeDigitBitmap(digit, variant) {
+  variant = variant || 0;
+  const S = VAE_SIZE;
+  const grid = new Float32Array(S * S);
+
+  // Anti-aliased thick line with gaussian falloff
+  function stroke(x, y, r, intensity) {
+    const ix0 = Math.max(0, Math.floor(x - r - 1));
+    const ix1 = Math.min(S - 1, Math.ceil(x + r + 1));
+    const iy0 = Math.max(0, Math.floor(y - r - 1));
+    const iy1 = Math.min(S - 1, Math.ceil(y + r + 1));
+    for (let iy = iy0; iy <= iy1; iy++) {
+      for (let ix = ix0; ix <= ix1; ix++) {
+        const d = Math.hypot(ix - x, iy - y);
+        if (d < r + 0.8) {
+          const v = intensity * Math.max(0, 1 - Math.max(0, d - r + 0.8) / 1.2);
+          grid[iy * S + ix] = Math.min(1, grid[iy * S + ix] + v);
         }
       }
     }
   }
-  function drawArc(cx, cy, rx, ry, startAngle, endAngle, w) {
-    const steps = 80;
+
+  // Draw cubic bezier curve
+  function bezier(pts, width, intensity) {
+    const steps = 120;
     for (let i = 0; i <= steps; i++) {
-      const a = startAngle + (endAngle - startAngle) * i / steps;
-      drawLine(cx + rx*Math.cos(a), cy + ry*Math.sin(a), cx + rx*Math.cos(a), cy + ry*Math.sin(a), w);
+      const t = i / steps;
+      const t2 = t * t, t3 = t2 * t;
+      const mt = 1 - t, mt2 = mt * mt, mt3 = mt2 * mt;
+      const x = mt3*pts[0] + 3*mt2*t*pts[2] + 3*mt*t2*pts[4] + t3*pts[6];
+      const y = mt3*pts[1] + 3*mt2*t*pts[3] + 3*mt*t2*pts[5] + t3*pts[7];
+      // Vary width slightly along stroke for handwritten feel
+      const w = width * (0.85 + 0.3 * Math.sin(t * 3.14));
+      stroke(x, y, w, intensity || 1.0);
     }
   }
 
-  const W = 1.5; // stroke width
+  // Draw quadratic bezier
+  function qbezier(pts, width, intensity) {
+    const steps = 80;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const mt = 1 - t;
+      const x = mt*mt*pts[0] + 2*mt*t*pts[2] + t*t*pts[4];
+      const y = mt*mt*pts[1] + 2*mt*t*pts[3] + t*t*pts[5];
+      const w = width * (0.85 + 0.3 * Math.sin(t * 2.5));
+      stroke(x, y, w, intensity || 1.0);
+    }
+  }
+
+  // Draw line
+  function line(x0, y0, x1, y1, width, intensity) {
+    const steps = Math.max(40, Math.hypot(x1-x0, y1-y0) * 4);
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const w = width * (0.9 + 0.2 * Math.sin(t * 4));
+      stroke(x0 + (x1-x0)*t, y0 + (y1-y0)*t, w, intensity || 1.0);
+    }
+  }
+
+  // Small random variation per variant
+  const jx = (variant - 2) * 0.3;
+  const jy = (variant % 3 - 1) * 0.3;
+  const W = 1.6 + (variant % 3) * 0.15;
+
   switch (digit) {
-    case 0:
-      drawArc(14, 14, 6, 9, 0, Math.PI*2, W);
+    case 0: // Oval
+      bezier([10+jx,14+jy, 10,4, 19,4, 19+jx,14], W, 1.0);
+      bezier([19+jx,14, 19,24, 10,24, 10+jx,14+jy], W, 1.0);
       break;
-    case 1:
-      drawLine(12, 6, 14, 4, W); drawLine(14, 4, 14, 23, W); drawLine(10, 23, 18, 23, W);
+    case 1: // Vertical with serif
+      qbezier([10+jx,8+jy, 13,6, 14,5], W*0.8, 0.9);
+      line(14+jx, 5+jy, 14+jx, 23, W, 1.0);
+      line(10+jx, 23, 18+jx, 23, W*0.8, 0.85);
       break;
-    case 2:
-      drawArc(14, 10, 6, 5, Math.PI*1.2, Math.PI*2.1, W);
-      drawLine(20, 10, 8, 23, W); drawLine(8, 23, 20, 23, W);
+    case 2: // Curved top, diagonal, base
+      bezier([8+jx,10+jy, 8,4, 20,4, 20+jx,10], W, 1.0);
+      qbezier([20+jx,10, 14,18, 7+jx,23+jy], W, 1.0);
+      line(7+jx, 23+jy, 21+jx, 23+jy, W, 1.0);
       break;
-    case 3:
-      drawArc(14, 10, 5.5, 5, -Math.PI*0.8, Math.PI*0.5, W);
-      drawArc(14, 18, 5.5, 5, -Math.PI*0.5, Math.PI*0.8, W);
+    case 3: // Two curves
+      bezier([8+jx,6+jy, 12,4, 20,5, 18,12], W, 1.0);
+      qbezier([18,12, 14,13, 12+jx,13], W*0.8, 0.9);
+      bezier([12+jx,13, 20,13, 20,22, 8+jx,23+jy], W, 1.0);
       break;
-    case 4:
-      drawLine(16, 4, 8, 17, W); drawLine(8, 17, 21, 17, W); drawLine(16, 4, 16, 23, W);
+    case 4: // Angular
+      line(17+jx, 5+jy, 7+jx, 17, W, 1.0);
+      line(7+jx, 17, 22+jx, 17, W, 1.0);
+      line(17+jx, 5+jy, 17+jx, 24, W, 1.0);
       break;
-    case 5:
-      drawLine(19, 5, 9, 5, W); drawLine(9, 5, 8, 13, W);
-      drawArc(14, 17, 6, 6, -Math.PI*0.5, Math.PI*0.8, W);
+    case 5: // Top bar, vertical, bottom curve
+      line(19+jx, 5+jy, 9+jx, 5+jy, W, 1.0);
+      line(9+jx, 5+jy, 8+jx, 13, W, 1.0);
+      bezier([8+jx,13, 12,11, 20,13, 20,18], W, 1.0);
+      bezier([20,18, 20,24, 12,25, 7+jx,21+jy], W, 1.0);
       break;
-    case 6:
-      drawArc(14, 17, 6, 6, 0, Math.PI*2, W);
-      drawLine(8, 17, 14, 4, W);
+    case 6: // Descending stroke + bottom loop
+      qbezier([17+jx,4+jy, 12,6, 9,12], W, 1.0);
+      bezier([9,12, 7,18, 8,24, 14,24], W, 1.0);
+      bezier([14,24, 21,24, 21,15, 14,14], W, 1.0);
+      qbezier([14,14, 9,14, 9+jx,18], W*0.9, 0.9);
       break;
-    case 7:
-      drawLine(8, 5, 20, 5, W); drawLine(20, 5, 12, 23, W);
+    case 7: // Top bar + diagonal
+      line(7+jx, 5+jy, 21+jx, 5+jy, W, 1.0);
+      bezier([21+jx,5+jy, 19,10, 15,17, 12+jx,24], W, 1.0);
       break;
-    case 8:
-      drawArc(14, 10, 5, 4.5, 0, Math.PI*2, W);
-      drawArc(14, 19, 5.5, 5, 0, Math.PI*2, W);
+    case 8: // Two loops
+      bezier([14+jx,13, 7,12, 7,5, 14,5+jy], W, 1.0);
+      bezier([14,5+jy, 21,5, 21,12, 14+jx,13], W, 1.0);
+      bezier([14+jx,13, 6,14, 6,23, 14,24], W, 1.0);
+      bezier([14,24, 22,24, 22,14, 14+jx,13], W, 1.0);
       break;
-    case 9:
-      drawArc(14, 11, 6, 6, 0, Math.PI*2, W);
-      drawLine(20, 11, 14, 24, W);
+    case 9: // Top loop + descending
+      bezier([14+jx,13, 7,13, 7,4, 14,4+jy], W, 1.0);
+      bezier([14,4+jy, 21,4, 21,13, 14+jx,13], W, 1.0);
+      qbezier([19+jx,11, 18,18, 13+jx,24+jy], W, 1.0);
       break;
   }
-  // Add slight noise and variation
-  const out = new Float32Array(VAE_SIZE * VAE_SIZE);
+
+  // Apply Gaussian blur to simulate MNIST's soft appearance
+  const blurred = new Float32Array(S * S);
+  const kernel = 0.7;
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      let sum = 0, wt = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const ny = y + dy, nx = x + dx;
+          if (ny >= 0 && ny < S && nx >= 0 && nx < S) {
+            const w = (dx === 0 && dy === 0) ? 1 : kernel * (dx*dy === 0 ? 0.6 : 0.3);
+            sum += grid[ny * S + nx] * w;
+            wt += w;
+          }
+        }
+      }
+      blurred[y * S + x] = Math.min(1, sum / wt);
+    }
+  }
+
+  // Add subtle per-pixel noise for handwritten texture
+  const out = new Float32Array(S * S);
   for (let i = 0; i < out.length; i++) {
-    out[i] = Math.min(1, grid[i] + (Math.random() * 0.05));
+    const noise = (Math.random() - 0.5) * 0.03;
+    out[i] = Math.min(1, Math.max(0, blurred[i] + (blurred[i] > 0.05 ? noise : 0)));
   }
   return out;
 }
@@ -817,7 +956,7 @@ for (let d = 0; d < 10; d++) {
   const variants = [];
   const positions = [];
   for (let v = 0; v < 5; v++) {
-    variants.push(makeDigitBitmap(d));
+    variants.push(makeDigitBitmap(d, v));
     const jitter = 0.3;
     positions.push([
       latentCenters[d][0] + (Math.random() - 0.5) * jitter,
@@ -1063,17 +1202,38 @@ function vaeInit() {
 // DIFFUSION DEMO
 // ═══════════════════════════════════════════════════════
 let diffAnim = null;
+let diffLastLogStep = -1;
+const diffLogMessages = [
+  [0,  'Starting from pure Gaussian noise x\u209c \u2014 every pixel is random.'],
+  [3,  'U-Net/Transformer receives noisy image + text embedding via cross-attention.'],
+  [6,  'Network predicts noise \u03b5 present at this timestep.'],
+  [10, 'Predicted noise subtracted \u2192 x\u209c\u208b\u2081. Global colour palette emerging.'],
+  [15, 'Low-frequency structure locked in: sky vs ground, foreground vs background.'],
+  [20, 'Classifier-free guidance amplifies prompt-relevant features.'],
+  [25, 'Mid-frequency details forming: object shapes, edges, contours.'],
+  [30, 'Spatial relationships solidifying. Composition is clear.'],
+  [35, 'High-frequency details: textures, patterns, fine edges.'],
+  [40, 'Final refinement passes \u2014 sharpening edges, adding micro-detail.'],
+  [45, 'Almost done \u2014 last few steps add subtle texture and polish.'],
+  [50, 'Generation complete! 50 denoising steps: noise \u2192 image.'],
+];
+
 function diffReset() {
   if (diffAnim) cancelAnimationFrame(diffAnim); diffAnim = null;
+  diffLastLogStep = -1;
   const ctx = document.getElementById('diffCanvas').getContext('2d');
   ctx.clearRect(0,0,256,256); ctx.fillStyle='#f1f5f9'; ctx.fillRect(0,0,256,256);
-  document.getElementById('diffStepLabel').textContent = 'Step 0 / 50 — Press Generate';
+  document.getElementById('diffStepLabel').textContent = 'Step 0 / 50 \u2014 Press Generate';
+  document.getElementById('diffLog').innerHTML = '<div class="log-line active"><span class="log-step">[ready]</span> Press Generate to start the denoising process.</div>';
   document.getElementById('diffPlayBtn').disabled = false;
 }
 
 function diffPlay() {
   if (diffAnim) return;
   document.getElementById('diffPlayBtn').disabled = true;
+  diffLastLogStep = -1;
+  const log = document.getElementById('diffLog');
+  log.innerHTML = '';
   const SIZE=256, canvas=document.getElementById('diffCanvas');
   const target = makeTargetImage(document.getElementById('diffSubject').value, SIZE);
   const noise = makeNoise(SIZE);
@@ -1092,6 +1252,18 @@ function diffPlay() {
     else if(s>40&&s<50) desc='Final polish';
     else if(s>=50) desc='Complete!';
     document.getElementById('diffStepLabel').textContent = `Step ${s} / 50 \u2014 ${desc}`;
+    // Update log
+    for (const [threshold, msg] of diffLogMessages) {
+      if (s >= threshold && diffLastLogStep < threshold) {
+        log.querySelectorAll('.log-line').forEach(l => l.classList.remove('active'));
+        const line = document.createElement('div');
+        line.className = 'log-line active';
+        line.innerHTML = `<span class="log-step">[step ${threshold}]</span> ${msg}`;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+        diffLastLogStep = threshold;
+      }
+    }
     if (step < TOTAL) diffAnim = requestAnimationFrame(tick);
     else { diffAnim=null; document.getElementById('diffPlayBtn').disabled=false; }
   }
@@ -1103,6 +1275,29 @@ function diffPlay() {
 // AUTOREGRESSIVE DEMO
 // ═══════════════════════════════════════════════════════
 let arMode='var', arAnim=null;
+let arLastLogIdx = -1;
+
+const arRasterLogMessages = [
+  [0,   'Starting raster-scan generation \u2014 pixels produced one-by-one, left\u2192right, top\u2192bottom.'],
+  [0.05,'Each 8\u00d78 patch = one "visual token." The transformer autoregressively predicts the next token.'],
+  [0.12,'Conditioned on ALL previously generated tokens (causal attention mask).'],
+  [0.25,'~25% done. This is how DALL\u00b7E 1 (Ramesh et al., 2021) generated images with a 12B-param transformer.'],
+  [0.40,'Bottleneck: 32\u00d732 grid = 1,024 tokens. Generation is strictly sequential \u2014 no parallelism.'],
+  [0.55,'Over halfway. Attention cost grows quadratically: O(n\u00b2) with sequence length.'],
+  [0.70,'Global coherence suffers \u2014 later tokens can\'t "see" the full image during planning.'],
+  [0.85,'Almost done. Total: 1,024 sequential steps. This motivated next-scale / VAR approaches.'],
+  [1.0, 'Complete! 1,024 sequential tokens. Slow and hard to scale \u2014 now considered obsolete.'],
+];
+
+const arVarLogMessages = [
+  [0, 'VAR (Visual AutoRegressive): predict image at increasing resolutions, not pixel-by-pixel.'],
+  [1, 'Scale 1: 1\u00d71 \u2014 predict a single token capturing the global colour/layout of the whole image.'],
+  [2, 'Scale 2: 2\u00d72 \u2014 4 tokens generated IN PARALLEL, conditioned on the 1\u00d71 token. Rough quadrants emerge.'],
+  [3, 'Scale 3: 4\u00d74 \u2014 16 tokens in parallel. Major spatial structure locked in.'],
+  [4, 'Scale 4: 8\u00d78 \u2014 64 tokens. Object shapes and mid-frequency detail appearing.'],
+  [5, 'Scale 5: 16\u00d716 \u2014 256 tokens. Fine detail & textures. All tokens at this scale generated simultaneously.'],
+  [6, 'Scale 6: 32\u00d732 \u2014 1,024 tokens in parallel. Full resolution. Total: only 6 autoregressive steps!'],
+];
 
 function arSetMode(mode) {
   arReset(); arMode = mode;
@@ -1117,19 +1312,40 @@ function arSetMode(mode) {
 
 function arReset() {
   if (arAnim) cancelAnimationFrame(arAnim); arAnim=null;
+  arLastLogIdx = -1;
   const ctx = document.getElementById('arCanvas').getContext('2d');
   ctx.clearRect(0,0,256,256); ctx.fillStyle='#f1f5f9'; ctx.fillRect(0,0,256,256);
   document.getElementById('arStepLabel').textContent = 'Press Generate';
+  document.getElementById('arLog').innerHTML = '<div class="log-line active"><span class="log-step">[ready]</span> Choose Raster or VAR mode, then press Generate.</div>';
   document.getElementById('arPlayBtn').disabled = false;
 }
 
 function arPlay() {
   if (arAnim) return;
   document.getElementById('arPlayBtn').disabled = true;
+  arLastLogIdx = -1;
+  document.getElementById('arLog').innerHTML = '';
   const SIZE=256, canvas=document.getElementById('arCanvas'), ctx=canvas.getContext('2d');
   const target = makeTargetImage(document.getElementById('arSubject').value, SIZE);
   if (arMode==='raster') arPlayRaster(canvas,ctx,target,SIZE);
   else arPlayVar(canvas,ctx,target,SIZE);
+}
+
+function arUpdateLog(progress, messages) {
+  const log = document.getElementById('arLog');
+  for (let i = 0; i < messages.length; i++) {
+    const [threshold, msg] = messages[i];
+    if (progress >= threshold && arLastLogIdx < i) {
+      log.querySelectorAll('.log-line').forEach(l => l.classList.remove('active'));
+      const line = document.createElement('div');
+      line.className = 'log-line active';
+      const label = threshold <= 1 && messages === arRasterLogMessages ? `${Math.round(threshold*100)}%` : `scale ${threshold}`;
+      line.innerHTML = `<span class="log-step">[${label}]</span> ${msg}`;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+      arLastLogIdx = i;
+    }
+  }
 }
 
 function arPlayRaster(canvas, ctx, target, SIZE) {
@@ -1149,7 +1365,9 @@ function arPlayRaster(canvas, ctx, target, SIZE) {
       ctx.fillRect(px,py,BLOCK,BLOCK);
       ctx.strokeStyle='#ef4444'; ctx.lineWidth=2; ctx.strokeRect(px,py,BLOCK,BLOCK);
     }
-    document.getElementById('arStepLabel').textContent = `Token ${idx} / ${TOTAL} \u2014 ${((idx/TOTAL)*100).toFixed(0)}% (one by one, left\u2192right)`;
+    const progress = idx / TOTAL;
+    document.getElementById('arStepLabel').textContent = `Token ${idx} / ${TOTAL} \u2014 ${(progress*100).toFixed(0)}% (one by one, left\u2192right)`;
+    arUpdateLog(progress, arRasterLogMessages);
     if (idx<TOTAL) arAnim=requestAnimationFrame(tick);
     else { arAnim=null; document.getElementById('arStepLabel').textContent='Done! 1,024 sequential steps. Slow.'; document.getElementById('arPlayBtn').disabled=false; }
   }
@@ -1181,6 +1399,7 @@ function arPlayVar(canvas, ctx, target, SIZE) {
       ctx.fillRect(px,py,blockSize,blockSize);
     }
     document.getElementById('arStepLabel').textContent = `Scale ${scaleIdx+1}/${scales.length}: ${scale}\u00d7${scale} \u2014 ${totalTokens} tokens generated in parallel`;
+    arUpdateLog(scaleIdx + 1, arVarLogMessages);
     if (tokenInScale>=totalTokens) { scaleIdx++; tokenInScale=0; setTimeout(()=>{arAnim=requestAnimationFrame(tick);},400/speed); }
     else arAnim=requestAnimationFrame(tick);
   }
@@ -1192,18 +1411,31 @@ function arPlayVar(canvas, ctx, target, SIZE) {
 // ═══════════════════════════════════════════════════════
 let hybridAnim = null;
 
+function hybridLogAppend(label, msg) {
+  const log = document.getElementById('hybridLog');
+  log.querySelectorAll('.log-line').forEach(l => l.classList.remove('active'));
+  const line = document.createElement('div');
+  line.className = 'log-line active';
+  line.innerHTML = `<span class="log-step">[${label}]</span> ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
 function hybridReset() {
   if (hybridAnim) cancelAnimationFrame(hybridAnim); hybridAnim=null;
   const ctx=document.getElementById('hybridCanvas').getContext('2d');
   ctx.clearRect(0,0,256,256); ctx.fillStyle='#f1f5f9'; ctx.fillRect(0,0,256,256);
   document.getElementById('hybridTimeline').innerHTML='';
   document.getElementById('hybridStepLabel').textContent='Press Generate';
+  document.getElementById('hybridLog').innerHTML='<div class="log-line active"><span class="log-step">[ready]</span> Transfusion: a single transformer handles BOTH text (cross-entropy) and images (diffusion MSE).</div>';
   document.getElementById('hybridPlayBtn').disabled=false;
 }
 
 function hybridPlay() {
   if (hybridAnim) return;
   document.getElementById('hybridPlayBtn').disabled = true;
+  document.getElementById('hybridLog').innerHTML = '';
+  hybridLogAppend('init', 'Transfusion model processes prompt as text tokens via standard autoregressive LM objective.');
   const SIZE=256, canvas=document.getElementById('hybridCanvas'), ctx=canvas.getContext('2d');
   const subject=document.getElementById('hybridSubject').value;
   const target=makeTargetImage(subject,SIZE), noise=makeNoise(SIZE);
@@ -1247,28 +1479,35 @@ function hybridPlay() {
 
     if(tokenIdx<words.length){
       document.getElementById('hybridStepLabel').textContent=`Generating text token: "${word}" (autoregressive)`;
+      if(tokenIdx===0) hybridLogAppend('text', `Predicting text tokens autoregressively: "${word}" \u2014 standard next-token prediction (cross-entropy loss).`);
+      else if(tokenIdx===words.length-1) hybridLogAppend('text', `Last prompt token "${word}". Next the model will emit a special BOI (Begin Of Image) token.`);
       tokenIdx++; setTimeout(animateTokens,500/speed());
     } else if(word==='BOI'){
       document.getElementById('hybridStepLabel').textContent='BOI \u2014 Begin Of Image marker emitted';
+      hybridLogAppend('BOI', 'BOI token signals mode switch: the model transitions from text (cross-entropy) to image (diffusion/MSE loss).');
       tokenIdx++; setTimeout(animateTokens,700/speed());
     } else if(word==='\ud83d\uddbc\ufe0f'){
       document.getElementById('hybridStepLabel').textContent='Generating image via PARALLEL DIFFUSION on all patches...';
+      hybridLogAppend('diffuse', 'Image patches generated via PARALLEL diffusion \u2014 not sequential! All patches denoised simultaneously.');
       ctx.clearRect(0,0,SIZE,SIZE); drawPixels(canvas,noise,SIZE);
-      let diffStep=0; const DIFF_STEPS=8;
+      let diffStep=0; const DIFF_STEPS=8; let hybDiffLogged4=false;
       function diffTick(){
         diffStep+=speed()*0.08; if(diffStep>DIFF_STEPS) diffStep=DIFF_STEPS;
         const t=diffStep/DIFF_STEPS, tE=1-Math.pow(1-t,3);
         drawPixels(canvas,blendPixels(noise,target,tE,SIZE),SIZE);
         document.getElementById('hybridStepLabel').textContent=`Image diffusion step ${Math.round(diffStep)}/${DIFF_STEPS} \u2014 ALL patches denoised in parallel`;
+        if(Math.round(diffStep)>=4 && !hybDiffLogged4){ hybDiffLogged4=true; hybridLogAppend('step 4', 'Halfway through denoising. Unlike autoregressive: image patches share info via bidirectional attention.'); }
         if(diffStep<DIFF_STEPS) hybridAnim=requestAnimationFrame(diffTick);
-        else { tokenIdx++; setTimeout(animateTokens,400/speed()); }
+        else { hybridLogAppend('done', 'Image diffusion complete. Model emits EOI token and resumes text generation.'); tokenIdx++; setTimeout(animateTokens,400/speed()); }
       }
       hybridAnim=requestAnimationFrame(diffTick); return;
     } else if(word==='EOI'){
       document.getElementById('hybridStepLabel').textContent='EOI \u2014 End Of Image. Back to text generation...';
+      hybridLogAppend('EOI', 'EOI token: back to text mode. The model can now describe or discuss the image it just generated.');
       tokenIdx++; setTimeout(animateTokens,700/speed());
     } else {
       document.getElementById('hybridStepLabel').textContent=`Generating text: "${word}" (autoregressive continues)`;
+      if(tokenIdx===allTokens.length-1) hybridLogAppend('finish', 'Complete! One model, one forward pass architecture \u2014 dual objective: cross-entropy (text) + MSE (images). Believed to power GPT-4o.');
       tokenIdx++; setTimeout(animateTokens,400/speed());
     }
   }
@@ -1502,7 +1741,7 @@ async function callHF(token, modelId, prompt, params) {
   if (params.negative_prompt) body.parameters.negative_prompt = params.negative_prompt;
   if (params.seed !== undefined) body.parameters.seed = params.seed;
 
-  const response = await fetch(`https://api-inference.huggingface.co/models/${modelId}`, {
+  const response = await fetch(`https://router.huggingface.co/hf-inference/models/${modelId}`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'x-wait-for-model': 'true' },
     body: JSON.stringify(body),
@@ -1570,7 +1809,7 @@ function hideError() { document.getElementById('errorMsg').classList.remove('vis
 // ═══════════════════════════════════════════════════════
 vaeInit();
 diffReset(); arReset(); hybridReset(); compareReset();
-arSetMode('var');
+arSetMode('raster');
 initModels();
 initToken();
 </script>
