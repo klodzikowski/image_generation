@@ -401,7 +401,7 @@
       <div class="demo-layout">
         <div class="demo-visual">
           <canvas id="diffCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
-          <div class="step-label" id="diffStepLabel">Step 0 / 50 &mdash; Pure noise</div>
+          <div class="step-label" id="diffStepLabel">Step 1 / 50 &mdash; Pure noise</div>
           <div class="controls" style="margin-top:0.8rem;">
             <select id="diffSubject">
               <option value="cat">A cat on a rainbow</option>
@@ -504,10 +504,6 @@
       <li><strong>Decoding:</strong> Token IDs are mapped back to patches via the VQ-VAE decoder, producing the final image.</li>
     </ol>
 
-    <h3>External links</h3>
-    <a class="ext-link" href="https://arxiv.org/abs/2404.02905" target="_blank">VAR paper (arXiv) &mdash; Visual Autoregressive Modeling: Scalable Image Generation via Next-Scale Prediction &rarr;</a>
-    <br>
-    <a class="ext-link" href="https://var.vision/demo" target="_blank">VAR interactive demo &rarr;</a>
   </div>
 </div>
 
@@ -1348,13 +1344,11 @@ function diffReset() {
   diffLastLogStep = -1;
   diffState.step = 0;
   diffState.noise = null; diffState.target = null;
-  const ctx = document.getElementById('diffCanvas').getContext('2d');
-  ctx.clearRect(0,0,256,256); ctx.fillStyle='#1e293b'; ctx.fillRect(0,0,256,256);
-  document.getElementById('diffStepLabel').textContent = 'Step 0 / 50 \u2014 Press Play or \u25b6';
-  document.getElementById('diffLog').innerHTML = '<div class="log-line active"><span class="log-step">[ready]</span> Press Play or use \u25c4 \u25b6 to step through the denoising process.</div>';
+  // Auto-init and show step 1 (pure noise) so students see something immediately
+  diffEnsureInit();
+  diffState.step = 1;
+  diffRenderStep();
   document.getElementById('diffPlayBtn').disabled = false;
-  document.getElementById('diffPrevBtn').disabled = true;
-  document.getElementById('diffNextBtn').disabled = false;
 }
 
 function diffEnsureInit() {
