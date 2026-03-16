@@ -6,24 +6,24 @@
 <title>LMT Image Generation Lab</title>
 <style>
   :root {
-    --blue: #2563eb; --blue-light: #eff6ff; --blue-border: #bfdbfe;
-    --purple: #7c3aed; --purple-light: #faf5ff; --purple-border: #ddd6fe;
-    --green: #16a34a; --green-light: #f0fdf4; --green-border: #bbf7d0;
-    --orange: #ea580c; --orange-light: #fff7ed; --orange-border: #fed7aa;
-    --rose: #e11d48; --rose-light: #fff1f2; --rose-border: #fecdd3;
-    --cyan: #0891b2; --cyan-light: #ecfeff; --cyan-border: #a5f3fc;
-    --text: #1e293b; --muted: #64748b; --surface: #f8fafc;
-    --border: #e2e8f0; --radius: 12px;
+    --blue: #60a5fa; --blue-light: #1e3a5f; --blue-border: #2563eb;
+    --purple: #a78bfa; --purple-light: #2d2150; --purple-border: #7c3aed;
+    --green: #4ade80; --green-light: #14332a; --green-border: #16a34a;
+    --orange: #fb923c; --orange-light: #3b2314; --orange-border: #ea580c;
+    --rose: #fb7185; --rose-light: #3b1425; --rose-border: #e11d48;
+    --cyan: #22d3ee; --cyan-light: #0c3644; --cyan-border: #0891b2;
+    --text: #e2e8f0; --muted: #94a3b8; --surface: #1e293b;
+    --bg: #0f172a; --card: #1e293b; --border: #334155; --radius: 12px;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color: var(--text); background: #f1f5f9; line-height: 1.6; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; }
 
-  .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%); color: white; padding: 2rem 2rem 1.5rem; text-align: center; }
+  .header { background: linear-gradient(135deg, #0a0f1a 0%, #131b2e 50%, #1a2540 100%); color: white; padding: 2rem 2rem 1.5rem; text-align: center; border-bottom: 1px solid var(--border); }
   .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.3rem; }
   .header p { color: #94a3b8; font-size: 0.95rem; max-width: 650px; margin: 0 auto; }
 
   .tabs { display: flex; justify-content: center; gap: 0.4rem; padding: 1.2rem 0.5rem 0; flex-wrap: wrap; max-width: 1100px; margin: 0 auto; }
-  .tab { padding: 0.6rem 1.1rem; border: 2px solid var(--border); border-radius: 999px; background: white; cursor: pointer; font-weight: 600; font-size: 0.82rem; transition: all 0.2s; white-space: nowrap; }
+  .tab { padding: 0.6rem 1.1rem; border: 2px solid var(--border); border-radius: 999px; background: var(--card); cursor: pointer; font-weight: 600; font-size: 0.82rem; transition: all 0.2s; white-space: nowrap; color: var(--muted); }
   .tab:hover { border-color: var(--blue); color: var(--blue); }
   .tab.active-vae { border-color: var(--rose); background: var(--rose); color: white; }
   .tab.active-diff { border-color: var(--blue); background: var(--blue); color: white; }
@@ -33,12 +33,13 @@
   .tab.active-live { border-color: var(--cyan); background: var(--cyan); color: white; }
 
   .panel { display: none; max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem 3rem; }
+  .panel.live-panel { max-width: 1200px; }
   .panel.visible { display: block; }
 
-  .card { background: white; border-radius: var(--radius); padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--border); }
-  .card h2 { font-size: 1.4rem; margin-bottom: 0.3rem; }
-  .card h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem; }
-  .card p, .card li { color: #475569; font-size: 0.95rem; }
+  .card { background: var(--card); border-radius: var(--radius); padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.3); border: 1px solid var(--border); }
+  .card h2 { font-size: 1.4rem; margin-bottom: 0.3rem; color: #f1f5f9; }
+  .card h3 { font-size: 1.1rem; margin: 1.2rem 0 0.5rem; color: #cbd5e1; }
+  .card p, .card li { color: #94a3b8; font-size: 0.95rem; }
   .card ul { padding-left: 1.2rem; margin: 0.5rem 0; }
 
   .badge { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; margin-left: 0.5rem; vertical-align: middle; }
@@ -47,8 +48,12 @@
   .badge-green { background: var(--green-light); color: var(--green); }
   .badge-rose { background: var(--rose-light); color: var(--rose); }
 
-  .demo-area { background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin: 1rem 0; text-align: center; }
+  .demo-area { background: #0f172a; border: 2px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin: 1rem 0; text-align: center; }
   .demo-area canvas { border-radius: 8px; image-rendering: pixelated; }
+  .demo-layout { display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem; align-items: start; text-align: left; }
+  .demo-layout .demo-visual { text-align: center; }
+  .demo-layout .demo-log { text-align: left; min-width: 0; display: flex; flex-direction: column; }
+  @media (max-width: 600px) { .demo-layout { grid-template-columns: 1fr; } }
 
   .controls { display: flex; gap: 0.8rem; align-items: center; justify-content: center; flex-wrap: wrap; margin-top: 1rem; }
   .btn { padding: 0.55rem 1.2rem; border: none; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 0.4rem; }
@@ -62,8 +67,11 @@
   .btn-rose:hover { background: #be123c; }
   .btn-cyan { background: var(--cyan); color: white; }
   .btn-cyan:hover { background: #0e7490; }
-  .btn-outline { background: white; border: 2px solid var(--border); color: var(--text); }
+  .btn-outline { background: var(--card); border: 2px solid var(--border); color: var(--text); }
   .btn-outline:hover { border-color: var(--blue); }
+  .btn-step { background: #334155; border: 1px solid #475569; color: #e2e8f0; padding: 0.4rem 0.7rem; font-size: 1rem; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+  .btn-step:hover { background: #475569; }
+  .btn-step:disabled { opacity: 0.3; cursor: default; }
   .btn:disabled { opacity: 0.5; cursor: default; }
   .btn-sm { padding: 0.35rem 0.7rem; font-size: 0.8rem; }
 
@@ -73,13 +81,13 @@
 
   .step-label { font-size: 1rem; font-weight: 700; color: var(--text); min-width: 160px; }
 
-  .insight { background: var(--blue-light); border-left: 4px solid var(--blue); padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin: 1rem 0; font-size: 0.9rem; color: #1e40af; }
+  .insight { background: var(--blue-light); border-left: 4px solid var(--blue); padding: 1rem 1.2rem; border-radius: 0 8px 8px 0; margin: 1rem 0; font-size: 0.9rem; color: #93c5fd; }
   .insight strong { color: var(--blue); }
-  .insight-purple { background: var(--purple-light); border-left-color: var(--purple); color: #5b21b6; }
+  .insight-purple { background: var(--purple-light); border-left-color: var(--purple); color: #c4b5fd; }
   .insight-purple strong { color: var(--purple); }
-  .insight-green { background: var(--green-light); border-left-color: var(--green); color: #166534; }
+  .insight-green { background: var(--green-light); border-left-color: var(--green); color: #86efac; }
   .insight-green strong { color: var(--green); }
-  .insight-rose { background: var(--rose-light); border-left-color: var(--rose); color: #9f1239; }
+  .insight-rose { background: var(--rose-light); border-left-color: var(--rose); color: #fda4af; }
   .insight-rose strong { color: var(--rose); }
 
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
@@ -91,7 +99,7 @@
 
   .compare-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; }
   @media (max-width: 700px) { .compare-row { grid-template-columns: 1fr; } }
-  .compare-cell { text-align: center; padding: 1rem; border-radius: var(--radius); }
+  .compare-cell { text-align: center; padding: 1rem; border-radius: var(--radius); background: #0f172a; }
   .compare-cell canvas { margin: 0.5rem auto; display: block; border-radius: 6px; }
   .compare-cell h4 { font-size: 0.95rem; margin-bottom: 0.3rem; }
   .compare-cell p { font-size: 0.8rem; color: var(--muted); }
@@ -99,13 +107,13 @@
   .ext-link { display: inline-block; margin-top: 0.5rem; color: var(--blue); font-weight: 600; text-decoration: none; font-size: 0.9rem; }
   .ext-link:hover { text-decoration: underline; }
 
-  select { padding: 0.4rem 0.8rem; border-radius: 6px; border: 2px solid var(--border); font-size: 0.85rem; background: white; }
+  select { padding: 0.4rem 0.8rem; border-radius: 6px; border: 2px solid var(--border); font-size: 0.85rem; background: #0f172a; color: var(--text); }
 
   /* Step log — real-time description of what's happening */
-  .step-log { background: #0f172a; color: #94a3b8; border-radius: 8px; padding: 0.8rem 1rem; margin-top: 0.8rem; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.78rem; line-height: 1.7; max-height: 160px; overflow-y: auto; }
-  .step-log .log-line { opacity: 0.5; }
-  .step-log .log-line.active { opacity: 1; color: #e2e8f0; }
-  .step-log .log-line .log-step { color: #60a5fa; font-weight: 600; }
+  .step-log { background: #0a0f1a; color: #94a3b8; border-radius: 8px; padding: 1rem 1.2rem; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.82rem; line-height: 1.8; max-height: 280px; overflow-y: auto; flex: 1; }
+  .step-log .log-line { opacity: 0.45; margin-bottom: 0.3rem; }
+  .step-log .log-line.active { opacity: 1; color: #f1f5f9; font-size: 0.85rem; }
+  .step-log .log-line .log-step { color: #60a5fa; font-weight: 700; }
   .step-log .log-line .log-highlight { color: #fbbf24; }
 
   /* ── VAE-specific ── */
@@ -114,7 +122,7 @@
   .vae-col h4 { font-size: 0.9rem; color: var(--muted); margin-bottom: 0.5rem; }
   .vae-arrow { font-size: 2rem; color: var(--muted); display: flex; align-items: center; padding-top: 1.5rem; }
   .digit-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 0.8rem 0; }
-  .digit-btn { width: 48px; height: 48px; border: 2px solid var(--border); border-radius: 8px; background: white; cursor: pointer; font-size: 1.2rem; font-weight: 700; transition: all 0.15s; }
+  .digit-btn { width: 48px; height: 48px; border: 2px solid var(--border); border-radius: 8px; background: var(--card); cursor: pointer; font-size: 1.2rem; font-weight: 700; color: var(--text); transition: all 0.15s; }
   .digit-btn:hover { border-color: var(--rose); background: var(--rose-light); }
   .digit-btn.selected { border-color: var(--rose); background: var(--rose); color: white; }
   .latent-space-container { position: relative; }
@@ -136,7 +144,7 @@
   .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--muted); margin-bottom: 0.3rem; }
   textarea, .live-panel input[type="text"] {
     width: 100%; padding: 0.6rem 0.8rem; border-radius: 8px; border: 2px solid var(--border);
-    font-size: 0.9rem; font-family: inherit; background: white; transition: border-color 0.15s;
+    font-size: 0.9rem; font-family: inherit; background: #0f172a; color: var(--text); transition: border-color 0.15s;
   }
   textarea:focus, .live-panel select:focus, .live-panel input[type="text"]:focus { outline: none; border-color: var(--cyan); }
   textarea { resize: vertical; min-height: 70px; }
@@ -147,10 +155,10 @@
   .slider-val { font-size: 0.85rem; font-weight: 700; color: var(--cyan); min-width: 32px; text-align: right; }
 
   .suggestions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; }
-  .suggestion { padding: 0.25rem 0.6rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: 0.75rem; cursor: pointer; color: var(--muted); transition: all 0.15s; }
+  .suggestion { padding: 0.25rem 0.6rem; border-radius: 999px; background: #0f172a; border: 1px solid var(--border); font-size: 0.75rem; cursor: pointer; color: var(--muted); transition: all 0.15s; }
   .suggestion:hover { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-light); }
 
-  .image-area { background: var(--surface); border: 2px dashed var(--border); border-radius: var(--radius); min-height: 300px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; margin: 1rem 0; }
+  .image-area { background: #0a0f1a; border: 2px dashed var(--border); border-radius: var(--radius); min-height: 300px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; margin: 0; }
   .image-area.has-image { border-style: solid; }
   .image-area img { max-width: 100%; max-height: 600px; border-radius: 8px; cursor: pointer; }
   .image-placeholder { text-align: center; color: var(--muted); padding: 2rem; }
@@ -163,11 +171,17 @@
   .loading-text { font-size: 0.9rem; color: var(--muted); font-weight: 500; }
   .loading-time { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-  .error-msg { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; margin: 0.8rem 0; display: none; }
+  .error-msg { background: #3b1425; border: 1px solid #7f1d1d; color: #fca5a5; padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; margin: 0.8rem 0; display: none; }
+
+  /* Live generation two-column layout */
+  .live-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+  .live-two-col .live-controls { }
+  .live-two-col .live-output { position: sticky; top: 1rem; }
+  @media (max-width: 650px) { .live-two-col { grid-template-columns: 1fr; } }
   .error-msg.visible { display: block; }
   .gen-meta { font-size: 0.8rem; color: var(--muted); margin-top: 0.5rem; }
 
-  .info-box { padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; background: var(--cyan-light); border-left: 3px solid var(--cyan); color: #164e63; margin: 0.8rem 0; }
+  .info-box { padding: 0.8rem 1rem; border-radius: 8px; font-size: 0.85rem; background: var(--cyan-light); border-left: 3px solid var(--cyan); color: #67e8f9; margin: 0.8rem 0; }
   .info-box strong { color: var(--cyan); }
 
   .collapsible-toggle { cursor: pointer; display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; color: var(--muted); margin-top: 0.5rem; user-select: none; }
@@ -177,7 +191,7 @@
 
   .gallery-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
   .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
-  .gallery-item { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: white; cursor: pointer; transition: transform 0.15s; }
+  .gallery-item { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: var(--card); cursor: pointer; transition: transform 0.15s; }
   .gallery-item:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
   .gallery-item img { width: 100%; aspect-ratio: 1; object-fit: cover; }
   .gallery-info { padding: 0.5rem 0.7rem; }
@@ -189,7 +203,7 @@
   .lightbox img { max-width: 90vw; max-height: 80vh; border-radius: 8px; }
   .lightbox-info { color: #cbd5e1; font-size: 0.85rem; text-align: center; max-width: 600px; }
 
-  .model-card { display: flex; gap: 0.6rem; padding: 0.6rem; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.15s; background: white; }
+  .model-card { display: flex; gap: 0.6rem; padding: 0.6rem; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.15s; background: var(--card); }
   .model-card:hover { border-color: var(--cyan); }
   .model-card.selected { border-color: var(--cyan); background: var(--cyan-light); }
   .model-card .model-name { font-weight: 700; font-size: 0.9rem; }
@@ -219,10 +233,10 @@
 </div>
 
 <div class="tabs">
-  <div class="tab active-vae" onclick="showPanel('vae')" id="tab-vae">VAE <small style="opacity:0.7">'13</small></div>
-  <div class="tab" onclick="showPanel('diff')" id="tab-diff">Diffusion <small style="opacity:0.7">'20</small></div>
-  <div class="tab" onclick="showPanel('ar')" id="tab-ar">Autoregressive <small style="opacity:0.7">'21&ndash;'24</small></div>
-  <div class="tab" onclick="showPanel('hybrid')" id="tab-hybrid">Hybrid / Transfusion <small style="opacity:0.7">'24+</small></div>
+  <div class="tab active-vae" onclick="showPanel('vae')" id="tab-vae">VAE <small style="opacity:0.7">2013</small></div>
+  <div class="tab" onclick="showPanel('diff')" id="tab-diff">Diffusion <small style="opacity:0.7">2020</small></div>
+  <div class="tab" onclick="showPanel('ar')" id="tab-ar">Autoregressive <small style="opacity:0.7">2021&ndash;2024</small></div>
+  <div class="tab" onclick="showPanel('hybrid')" id="tab-hybrid">Hybrid / Transfusion <small style="opacity:0.7">2024+</small></div>
   <div class="tab" onclick="showPanel('compare')" id="tab-compare">Compare All</div>
   <div class="tab" onclick="showPanel('live')" id="tab-live">Live Generation</div>
 </div>
@@ -278,15 +292,14 @@
     </div>
 
     <div class="insight insight-rose">
-      <strong>Key insight:</strong> The VAE doesn't store images — it learns a <em>compressed representation</em>. The latent space is <strong>continuous</strong>: you can smoothly interpolate between a "3" and an "8" and get plausible digits in between. This is why VAEs (and their latent spaces) are the backbone of Stable Diffusion, DALL-E, and other modern generators — diffusion happens <em>in the latent space</em>, not on raw pixels.
+      <strong>Key insight:</strong> The VAE doesn't store images — it learns a <em>compressed representation</em>. The latent space is <strong>continuous</strong>: you can smoothly interpolate between a "1" and a "6" and get plausible digits in between. This is why VAEs (and their latent spaces) are the backbone of Stable Diffusion, DALL-E, and other modern generators — diffusion happens <em>in the latent space</em>, not on raw pixels.
     </div>
 
     <h3>How does a VAE work?</h3>
     <ul>
-      <li><strong>Encoder:</strong> Compresses a 28x28 image (784 pixels) down to just 2 numbers (the latent code z). It outputs a <em>distribution</em> (mean + variance), not a single point.</li>
-      <li><strong>Reparameterisation trick:</strong> Sample from that distribution: z = &mu; + &sigma; &times; &epsilon; (where &epsilon; ~ N(0,1)). This makes the model trainable via backpropagation.</li>
-      <li><strong>Decoder:</strong> Takes the 2 numbers and reconstructs the full 28x28 image.</li>
-      <li><strong>Loss = Reconstruction + KL divergence.</strong> Reconstruction ensures the output looks like the input. KL divergence ensures the latent space is smooth and well-organised (close to a standard normal).</li>
+      <li><strong>Encoder:</strong> Compresses a 28&times;28 image (784 pixels) down to just 2 numbers (the latent code <em>z</em>). Crucially, it outputs a <em>range of possible codes</em>, not a single fixed point.</li>
+      <li><strong>Decoder:</strong> Takes those 2 numbers and reconstructs the full 28&times;28 image.</li>
+      <li><strong>Loss = Reconstruction + Smoothness.</strong> The reconstruction part ensures the output looks like the input. The smoothness part ensures the latent space is well-organised &mdash; nearby points decode to similar images, with no "holes" or jumps.</li>
     </ul>
 
     <h3>Why MNIST?</h3>
@@ -301,23 +314,33 @@
     <p>Introduced by <a href="https://arxiv.org/abs/2006.11239" target="_blank" style="color:var(--blue)">Ho et al. (2020)</a>. A diffusion model starts from pure Gaussian noise and iteratively removes it, guided by the text prompt. Models: <strong>Stable Diffusion</strong>, <strong>DALL-E 2/3</strong>, <strong>Imagen</strong>, <strong>FLUX</strong>.</p>
 
     <div class="demo-area">
-      <canvas id="diffCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
-      <div class="step-label" id="diffStepLabel">Step 0 / 50 &mdash; Pure noise</div>
-      <div class="step-log" id="diffLog">
-        <div class="log-line active"><span class="log-step">[ready]</span> Press Generate to start the denoising process.</div>
-      </div>
-      <div class="controls">
-        <select id="diffSubject">
-          <option value="cat">A cat on a rainbow</option>
-          <option value="city">A futuristic city</option>
-          <option value="mountain">Mountain landscape</option>
-          <option value="face">Abstract face</option>
-        </select>
-        <button class="btn btn-blue" id="diffPlayBtn" onclick="diffPlay()">&#9654; Generate</button>
-        <button class="btn btn-outline" onclick="diffReset()">Reset</button>
-        <div class="slider-group">
-          <label>Speed</label>
-          <input type="range" min="1" max="10" value="5" id="diffSpeed">
+      <div class="demo-layout">
+        <div class="demo-visual">
+          <canvas id="diffCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
+          <div class="step-label" id="diffStepLabel">Step 0 / 50 &mdash; Pure noise</div>
+          <div class="controls" style="margin-top:0.8rem;">
+            <select id="diffSubject">
+              <option value="cat">A cat on a rainbow</option>
+              <option value="city">A futuristic city</option>
+              <option value="mountain">Mountain landscape</option>
+              <option value="face">Abstract face</option>
+            </select>
+            <button class="btn btn-blue" id="diffPlayBtn" onclick="diffPlay()">&#9654; Play</button>
+            <button class="btn-step" id="diffPrevBtn" onclick="diffStepBack()" disabled title="Step back">&#9664;</button>
+            <button class="btn-step" id="diffNextBtn" onclick="diffStepForward()" title="Step forward">&#9654;</button>
+            <button class="btn btn-outline" onclick="diffReset()">Reset</button>
+          </div>
+          <div class="controls" style="margin-top:0.4rem;">
+            <div class="slider-group">
+              <label>Speed</label>
+              <input type="range" min="1" max="10" value="1" id="diffSpeed">
+            </div>
+          </div>
+        </div>
+        <div class="demo-log">
+          <div class="step-log" id="diffLog">
+            <div class="log-line active"><span class="log-step">[ready]</span> Press Play or use &#9654; to step through the denoising process.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -342,7 +365,7 @@
 <!-- ═══════════════════════════════════ AUTOREGRESSIVE ═══════════════════════════════════ -->
 <div class="panel" id="panel-ar">
   <div class="card">
-    <h2>Autoregressive: Treating Images as Language <span class="badge badge-purple">Fastest-improving</span></h2>
+    <h2>Autoregressive: Treating Images as Language <span class="badge badge-purple">Key building block</span></h2>
     <p>First: tokenise the image into discrete codes using a <strong>VQ-VAE</strong> (Vector Quantised VAE). Then: predict tokens sequentially with a transformer, just like predicting words. The key question is <em>in what order</em>.</p>
 
     <div class="controls" style="margin-bottom:0.5rem;">
@@ -351,23 +374,31 @@
     </div>
 
     <div class="demo-area">
-      <canvas id="arCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
-      <div class="step-label" id="arStepLabel">Press Generate to see the difference</div>
-      <div class="step-log" id="arLog">
-        <div class="log-line active"><span class="log-step">[ready]</span> Choose a mode above and press Generate.</div>
-      </div>
-      <div class="controls">
-        <select id="arSubject">
-          <option value="cat">A cat on a rainbow</option>
-          <option value="city">A futuristic city</option>
-          <option value="mountain">Mountain landscape</option>
-          <option value="face">Abstract face</option>
-        </select>
-        <button class="btn btn-purple" id="arPlayBtn" onclick="arPlay()">&#9654; Generate</button>
-        <button class="btn btn-outline" onclick="arReset()">Reset</button>
-        <div class="slider-group">
-          <label>Speed</label>
-          <input type="range" min="1" max="10" value="5" id="arSpeed">
+      <div class="demo-layout">
+        <div class="demo-visual">
+          <canvas id="arCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
+          <div class="step-label" id="arStepLabel">Press Generate to see the difference</div>
+          <div class="controls" style="margin-top:0.8rem;">
+            <select id="arSubject">
+              <option value="cat">A cat on a rainbow</option>
+              <option value="city">A futuristic city</option>
+              <option value="mountain">Mountain landscape</option>
+              <option value="face">Abstract face</option>
+            </select>
+            <button class="btn btn-purple" id="arPlayBtn" onclick="arPlay()">&#9654; Play</button>
+            <button class="btn btn-outline" onclick="arReset()">Reset</button>
+          </div>
+          <div class="controls" style="margin-top:0.4rem;">
+            <div class="slider-group">
+              <label>Speed</label>
+              <input type="range" min="1" max="10" value="1" id="arSpeed">
+            </div>
+          </div>
+        </div>
+        <div class="demo-log">
+          <div class="step-log" id="arLog">
+            <div class="log-line active"><span class="log-step">[ready]</span> Choose Raster or VAR mode, then press Play.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -401,23 +432,31 @@
     <p>Introduced by <a href="https://arxiv.org/abs/2408.11039" target="_blank" style="color:var(--green)">Meta (2024)</a>. A single transformer handles <strong>both text and images</strong> with two objectives: cross-entropy for text tokens, MSE diffusion loss for image patches. This is believed to be the architecture behind <strong>GPT-4o</strong> image generation and Google's <strong>Gemini</strong> image models.</p>
 
     <div class="demo-area">
-      <div class="timeline" id="hybridTimeline"></div>
-      <canvas id="hybridCanvas" width="256" height="256" style="width:256px;height:256px;margin-top:1rem;"></canvas>
-      <div class="step-label" id="hybridStepLabel">Press Generate to see the full pipeline</div>
-      <div class="step-log" id="hybridLog">
-        <div class="log-line active"><span class="log-step">[ready]</span> Press Generate to watch the Transfusion pipeline.</div>
-      </div>
-      <div class="controls">
-        <select id="hybridSubject">
-          <option value="cat">Draw a cat on a rainbow</option>
-          <option value="city">Show me a futuristic city</option>
-          <option value="mountain">Create a mountain landscape</option>
-        </select>
-        <button class="btn btn-green" id="hybridPlayBtn" onclick="hybridPlay()">&#9654; Generate</button>
-        <button class="btn btn-outline" onclick="hybridReset()">Reset</button>
-        <div class="slider-group">
-          <label>Speed</label>
-          <input type="range" min="1" max="10" value="5" id="hybridSpeed">
+      <div class="demo-layout">
+        <div class="demo-visual">
+          <div class="timeline" id="hybridTimeline"></div>
+          <canvas id="hybridCanvas" width="256" height="256" style="width:256px;height:256px;margin-top:1rem;"></canvas>
+          <div class="step-label" id="hybridStepLabel">Press Generate to see the full pipeline</div>
+          <div class="controls" style="margin-top:0.8rem;">
+            <select id="hybridSubject">
+              <option value="cat">Draw a cat on a rainbow</option>
+              <option value="city">Show me a futuristic city</option>
+              <option value="mountain">Create a mountain landscape</option>
+            </select>
+            <button class="btn btn-green" id="hybridPlayBtn" onclick="hybridPlay()">&#9654; Play</button>
+            <button class="btn btn-outline" onclick="hybridReset()">Reset</button>
+          </div>
+          <div class="controls" style="margin-top:0.4rem;">
+            <div class="slider-group">
+              <label>Speed</label>
+              <input type="range" min="1" max="10" value="1" id="hybridSpeed">
+            </div>
+          </div>
+        </div>
+        <div class="demo-log">
+          <div class="step-log" id="hybridLog">
+            <div class="log-line active"><span class="log-step">[ready]</span> Press Play to watch the Transfusion pipeline.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -497,119 +536,98 @@
     </div>
 
     <h2>Generate real images with AI models</h2>
-    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem;">Choose a model, write a prompt, and generate real images using HuggingFace's Inference API. Free tier gives ~$0.10/month of compute (~80+ images).</p>
+    <p style="color:var(--muted);font-size:0.9rem;margin-bottom:1rem;">Choose a model, write a prompt, and generate real images via HuggingFace Inference API.</p>
 
-    <!-- Model selector -->
-    <div class="form-group">
-      <label>Model</label>
-      <div class="model-grid" id="modelGrid"></div>
-    </div>
-
-    <div class="form-group">
-      <label>Prompt &mdash; describe what you want to see</label>
-      <textarea id="prompt" placeholder="Describe the image you want to create...">A cat wearing sunglasses sitting on a rainbow, digital art</textarea>
-      <div class="suggestions">
-        <span class="suggestion" onclick="setPrompt('A cat wearing sunglasses sitting on a rainbow, digital art')">cat on rainbow</span>
-        <span class="suggestion" onclick="setPrompt('A futuristic cyberpunk city at night with neon lights, cinematic lighting')">cyberpunk city</span>
-        <span class="suggestion" onclick="setPrompt('An astronaut riding a horse on Mars, photorealistic')">astronaut on Mars</span>
-        <span class="suggestion" onclick="setPrompt('A beautiful mountain landscape with a lake reflection at sunset, oil painting style')">mountain sunset</span>
-        <span class="suggestion" onclick="setPrompt('A robot painting a self-portrait in an art studio, detailed illustration')">robot artist</span>
-        <span class="suggestion" onclick="setPrompt('A medieval castle floating in the clouds, fantasy art, epic lighting')">floating castle</span>
-        <span class="suggestion" onclick="setPrompt('A photorealistic bowl of ramen with steam rising, food photography')">bowl of ramen</span>
-        <span class="suggestion" onclick="setPrompt('Portrait of a wise old wizard reading a glowing book, concept art')">wizard portrait</span>
-      </div>
-    </div>
-
-    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
-      <div class="form-row">
+    <div class="live-two-col">
+      <div class="live-controls">
+        <!-- Model selector -->
         <div class="form-group">
-          <label>Guidance scale
-            <span class="slider-tip"><span class="tip-icon">?</span>
-              <span class="tip-text">Controls how closely the model follows your prompt. 0 = model default. 5&ndash;8 = balanced. 12+ = very literal but can oversaturate. FLUX.1 works best at 0 (it's already distilled to follow prompts well). SDXL works best at 7&ndash;8.</span>
-            </span>
-          </label>
-          <div class="slider-row">
-            <input type="range" min="0" max="20" step="0.5" value="0" id="guidance" oninput="updateSlider('guidance')">
-            <span class="slider-val" id="guidance-val">0</span>
+          <label>Model</label>
+          <div class="model-grid" id="modelGrid"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Prompt</label>
+          <textarea id="prompt" placeholder="Describe the image you want to create..." style="min-height:50px;">A cat wearing sunglasses sitting on a rainbow, digital art</textarea>
+          <div class="suggestions">
+            <span class="suggestion" onclick="setPrompt('A cat wearing sunglasses sitting on a rainbow, digital art')">cat on rainbow</span>
+            <span class="suggestion" onclick="setPrompt('An astronaut riding a horse on a desert planet, photorealistic, cinematic lighting')">astronaut on horse</span>
+            <span class="suggestion" onclick="setPrompt('A woman scientist working in a futuristic laboratory with glowing holographic displays, concept art')">scientist in lab</span>
+            <span class="suggestion" onclick="setPrompt('A beautiful mountain landscape with a lake reflection at golden hour sunset, oil painting style')">mountain sunset</span>
+            <span class="suggestion" onclick="setPrompt('A medieval castle floating in the clouds, fantasy art, epic lighting')">floating castle</span>
+            <span class="suggestion" onclick="setPrompt('The old town square of Poznań, Poland with colorful merchant houses at sunset, photorealistic')">Poznań old town</span>
+            <span class="suggestion" onclick="setPrompt('A peaceful Polish countryside with rolling green fields, a small wooden church, and storks, watercolor style')">Polish countryside</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Guidance <span class="slider-tip"><span class="tip-icon">?</span><span class="tip-text">How closely the model follows your prompt. SDXL: 7&ndash;8 is best. FLUX.1: 0 (already distilled).</span></span></label>
+            <div class="slider-row">
+              <input type="range" min="0" max="20" step="0.5" value="7.5" id="guidance" oninput="updateSlider('guidance')">
+              <span class="slider-val" id="guidance-val">7.5</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Steps <span class="slider-tip"><span class="tip-icon">?</span><span class="tip-text">Denoising passes. More = better quality but slower. SDXL: 20&ndash;50. FLUX.1: 1&ndash;4.</span></span></label>
+            <div class="slider-row">
+              <input type="range" min="1" max="50" step="1" value="30" id="steps" oninput="updateSlider('steps')">
+              <span class="slider-val" id="steps-val">30</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Size <span class="slider-tip"><span class="tip-icon">?</span><span class="tip-text">Output resolution. SDXL trained on 1024&times;1024.</span></span></label>
+            <select id="imgSize">
+              <option value="512">512 &times; 512</option>
+              <option value="768">768 &times; 768</option>
+              <option value="1024" selected>1024 &times; 1024</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Seed <span class="slider-tip"><span class="tip-icon">?</span><span class="tip-text">Same seed + prompt = same image. Fix seed to compare parameter changes.</span></span></label>
+            <div style="display:flex;gap:0.4rem;">
+              <input type="text" id="seed" placeholder="Random" style="flex:1;">
+              <button class="btn btn-outline btn-sm" onclick="document.getElementById('seed').value=Math.floor(Math.random()*999999)" title="Random seed">&#127922;</button>
+            </div>
           </div>
         </div>
         <div class="form-group">
-          <label>Steps
-            <span class="slider-tip"><span class="tip-icon">?</span>
-              <span class="tip-text">Number of denoising passes. Each step removes a bit more noise. More steps = higher quality but slower. FLUX.1 Schnell is distilled to work in just 1&ndash;4 steps. SDXL needs 20&ndash;50 for good results. Try changing this to see quality degrade or improve!</span>
-            </span>
-          </label>
-          <div class="slider-row">
-            <input type="range" min="1" max="50" step="1" value="4" id="steps" oninput="updateSlider('steps')">
-            <span class="slider-val" id="steps-val">4</span>
+          <label>Negative prompt <span class="slider-tip"><span class="tip-icon">?</span><span class="tip-text">What you do NOT want. More effective with SDXL.</span></span></label>
+          <input type="text" id="negPrompt" placeholder="blurry, low quality, distorted" value="blurry, low quality, distorted">
+        </div>
+
+        <button class="btn btn-cyan" id="generateBtn" onclick="generate()" style="margin-top:0.5rem;">
+          <span id="genBtnText">Generate Image</span>
+        </button>
+        <div class="error-msg" id="errorMsg"></div>
+      </div>
+
+      <div class="live-output">
+        <div class="image-area" id="imageArea">
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Generating...</div>
+            <div class="loading-time" id="loadingTime">0.0s</div>
           </div>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Size
-            <span class="slider-tip"><span class="tip-icon">?</span>
-              <span class="tip-text">Output image resolution. Larger = more detailed but slower and uses more compute. Both models support 512&ndash;1024. SDXL was trained on 1024&times;1024. FLUX.1 handles all sizes well.</span>
-            </span>
-          </label>
-          <select id="imgSize">
-            <option value="512">512 &times; 512</option>
-            <option value="768">768 &times; 768</option>
-            <option value="1024" selected>1024 &times; 1024</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Seed
-            <span class="slider-tip"><span class="tip-icon">?</span>
-              <span class="tip-text">The random starting point for generation. Same seed + same prompt + same settings = identical image every time. Great for controlled experiments: change one parameter at a time and keep the seed fixed to see the effect.</span>
-            </span>
-          </label>
-          <div style="display:flex;gap:0.4rem;">
-            <input type="text" id="seed" placeholder="Random" style="flex:1;">
-            <button class="btn btn-outline btn-sm" onclick="document.getElementById('seed').value=Math.floor(Math.random()*999999)" title="Random seed">&#127922;</button>
+          <div class="image-placeholder" id="placeholder">
+            <div class="icon">&#127912;</div>
+            <div>Your image will appear here</div>
           </div>
+          <img id="resultImg" style="display:none;" onclick="openLightbox(0)">
+        </div>
+        <div class="gen-meta" id="genMeta"></div>
+
+        <div class="card" id="galleryCard" style="display:none;margin-top:1rem;">
+          <div class="gallery-header">
+            <h2 style="font-size:1.1rem;">Generation history</h2>
+            <button class="btn btn-outline btn-sm" onclick="clearGallery()">Clear</button>
+          </div>
+          <div class="gallery" id="galleryGrid"></div>
         </div>
       </div>
-      <div class="form-group">
-        <label>Negative prompt
-          <span class="slider-tip"><span class="tip-icon">?</span>
-            <span class="tip-text">Describes what you do NOT want in the image. The model tries to steer away from these concepts. More effective with SDXL than FLUX.1. Common: "blurry, low quality, distorted, ugly, watermark".</span>
-          </span>
-        </label>
-        <input type="text" id="negPrompt" placeholder="blurry, low quality, distorted" value="blurry, low quality, distorted">
-      </div>
     </div>
-
-    <div style="display:flex;gap:0.8rem;align-items:center;margin-top:1rem;">
-      <button class="btn btn-cyan" id="generateBtn" onclick="generate()">
-        <span id="genBtnText">Generate Image</span>
-      </button>
-    </div>
-  </div>
-
-  <div class="error-msg" id="errorMsg"></div>
-
-  <div class="image-area" id="imageArea">
-    <div class="loading" id="loading">
-      <div class="spinner"></div>
-      <div class="loading-text" id="loadingText">Generating...</div>
-      <div class="loading-time" id="loadingTime">0.0s</div>
-    </div>
-    <div class="image-placeholder" id="placeholder">
-      <div class="icon">&#127912;</div>
-      <div>Your generated image will appear here</div>
-      <div style="font-size:0.8rem;margin-top:0.3rem;">Choose a model, write a prompt, and press Generate</div>
-    </div>
-    <img id="resultImg" style="display:none;" onclick="openLightbox(0)">
-  </div>
-  <div class="gen-meta" id="genMeta"></div>
-
-  <div class="card" id="galleryCard" style="display:none;">
-    <div class="gallery-header">
-      <h2>Your generations</h2>
-      <button class="btn btn-outline btn-sm" onclick="clearGallery()">Clear all</button>
-    </div>
-    <div class="gallery" id="galleryGrid"></div>
   </div>
 </div>
 
@@ -1130,6 +1148,17 @@ function vaeInitLatentClick() {
   });
 }
 
+function vaeBlendBitmaps(bmpA, bmpB, t) {
+  // Smooth pixel-level blend between two digit bitmaps using cubic easing
+  const result = new Float32Array(bmpA.length);
+  // Use smoothstep for more natural morphing
+  const tS = t * t * (3 - 2 * t);
+  for (let i = 0; i < result.length; i++) {
+    result[i] = bmpA[i] * (1 - tS) + bmpB[i] * tS;
+  }
+  return result;
+}
+
 function vaeUpdateInterp() {
   const fromDigit = parseInt(document.getElementById('vaeInterpFrom').value);
   const toDigit = parseInt(document.getElementById('vaeInterpTo').value);
@@ -1139,14 +1168,17 @@ function vaeUpdateInterp() {
   const zTo = latentCenters[toDigit];
   const z = [zFrom[0]*(1-t) + zTo[0]*t, zFrom[1]*(1-t) + zTo[1]*t];
 
-  // Draw strip of interpolated images
+  // Use consistent variants for smooth blending
+  const bmpFrom = digitBitmaps[fromDigit][0];
+  const bmpTo = digitBitmaps[toDigit][0];
+
+  // Draw strip of interpolated images via direct pixel blending
   const strip = document.getElementById('vaeInterpStrip');
   strip.innerHTML = '';
   const STEPS = 9;
   for (let i = 0; i <= STEPS; i++) {
     const tt = i / STEPS;
-    const zz = [zFrom[0]*(1-tt) + zTo[0]*tt, zFrom[1]*(1-tt) + zTo[1]*tt];
-    const bmp = vaeDecode(zz);
+    const bmp = vaeBlendBitmaps(bmpFrom, bmpTo, tt);
     const c = document.createElement('canvas');
     c.width = 28; c.height = 28; c.style.width = '40px'; c.style.height = '40px';
     c.style.borderRadius = '4px'; c.style.imageRendering = 'pixelated';
@@ -1156,8 +1188,8 @@ function vaeUpdateInterp() {
     strip.appendChild(c);
   }
 
-  // Update main output
-  const decoded = vaeDecode(z);
+  // Update main output with blended bitmap
+  const decoded = vaeBlendBitmaps(bmpFrom, bmpTo, t);
   vaeDrawDigit(document.getElementById('vaeOutputCanvas'), decoded);
   vaeDrawLatentSpace(z);
 }
@@ -1180,8 +1212,8 @@ function vaeInit() {
     fromSel.add(new Option(d, d));
     toSel.add(new Option(d, d));
   }
-  fromSel.value = '3';
-  toSel.value = '8';
+  fromSel.value = '1';
+  toSel.value = '6';
 
   // Init canvases
   vaeDrawLatentSpace(null);
@@ -1203,6 +1235,7 @@ function vaeInit() {
 // ═══════════════════════════════════════════════════════
 let diffAnim = null;
 let diffLastLogStep = -1;
+let diffState = { noise: null, target: null, step: 0, TOTAL: 50 };
 const diffLogMessages = [
   [0,  'Starting from pure Gaussian noise x\u209c \u2014 every pixel is random.'],
   [3,  'U-Net/Transformer receives noisy image + text embedding via cross-attention.'],
@@ -1221,53 +1254,91 @@ const diffLogMessages = [
 function diffReset() {
   if (diffAnim) cancelAnimationFrame(diffAnim); diffAnim = null;
   diffLastLogStep = -1;
+  diffState.step = 0;
+  diffState.noise = null; diffState.target = null;
   const ctx = document.getElementById('diffCanvas').getContext('2d');
-  ctx.clearRect(0,0,256,256); ctx.fillStyle='#f1f5f9'; ctx.fillRect(0,0,256,256);
-  document.getElementById('diffStepLabel').textContent = 'Step 0 / 50 \u2014 Press Generate';
-  document.getElementById('diffLog').innerHTML = '<div class="log-line active"><span class="log-step">[ready]</span> Press Generate to start the denoising process.</div>';
+  ctx.clearRect(0,0,256,256); ctx.fillStyle='#1e293b'; ctx.fillRect(0,0,256,256);
+  document.getElementById('diffStepLabel').textContent = 'Step 0 / 50 \u2014 Press Play or \u25b6';
+  document.getElementById('diffLog').innerHTML = '<div class="log-line active"><span class="log-step">[ready]</span> Press Play or use \u25c4 \u25b6 to step through the denoising process.</div>';
+  document.getElementById('diffPlayBtn').disabled = false;
+  document.getElementById('diffPrevBtn').disabled = true;
+  document.getElementById('diffNextBtn').disabled = false;
+}
+
+function diffEnsureInit() {
+  if (!diffState.noise) {
+    const SIZE = 256;
+    diffState.target = makeTargetImage(document.getElementById('diffSubject').value, SIZE);
+    diffState.noise = makeNoise(SIZE);
+    diffState.step = 0;
+    diffLastLogStep = -1;
+    document.getElementById('diffLog').innerHTML = '';
+    drawPixels(document.getElementById('diffCanvas'), diffState.noise, SIZE);
+  }
+}
+
+function diffRenderStep() {
+  const {noise, target, step, TOTAL} = diffState;
+  const SIZE = 256, canvas = document.getElementById('diffCanvas');
+  const t = step/TOTAL;
+  const tE = 1 - Math.pow(1-t, 2.5);
+  drawPixels(canvas, blendPixels(noise, target, tE, SIZE), SIZE);
+  const s = Math.round(step);
+  let desc='Pure noise';
+  if(s>0&&s<=10) desc='Layout & colours emerging';
+  else if(s>10&&s<=25) desc='Shapes forming';
+  else if(s>25&&s<=40) desc='Refining details';
+  else if(s>40&&s<50) desc='Final polish';
+  else if(s>=50) desc='Complete!';
+  document.getElementById('diffStepLabel').textContent = `Step ${s} / 50 \u2014 ${desc}`;
+  // Update log
+  const log = document.getElementById('diffLog');
+  for (const [threshold, msg] of diffLogMessages) {
+    if (s >= threshold && diffLastLogStep < threshold) {
+      log.querySelectorAll('.log-line').forEach(l => l.classList.remove('active'));
+      const line = document.createElement('div');
+      line.className = 'log-line active';
+      line.innerHTML = `<span class="log-step">[step ${threshold}]</span> ${msg}`;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+      diffLastLogStep = threshold;
+    }
+  }
+  document.getElementById('diffPrevBtn').disabled = (step <= 0);
+  document.getElementById('diffNextBtn').disabled = (step >= TOTAL);
+}
+
+function diffStepForward() {
+  if (diffAnim) { cancelAnimationFrame(diffAnim); diffAnim = null; }
+  diffEnsureInit();
+  diffState.step = Math.min(diffState.TOTAL, diffState.step + 1);
+  diffRenderStep();
+  document.getElementById('diffPlayBtn').disabled = false;
+}
+
+function diffStepBack() {
+  if (diffAnim) { cancelAnimationFrame(diffAnim); diffAnim = null; }
+  if (!diffState.noise) return;
+  diffState.step = Math.max(0, Math.round(diffState.step) - 1);
+  // Reset log to match step
+  diffLastLogStep = -1;
+  document.getElementById('diffLog').innerHTML = '';
+  diffRenderStep();
   document.getElementById('diffPlayBtn').disabled = false;
 }
 
 function diffPlay() {
   if (diffAnim) return;
+  diffEnsureInit();
   document.getElementById('diffPlayBtn').disabled = true;
-  diffLastLogStep = -1;
-  const log = document.getElementById('diffLog');
-  log.innerHTML = '';
-  const SIZE=256, canvas=document.getElementById('diffCanvas');
-  const target = makeTargetImage(document.getElementById('diffSubject').value, SIZE);
-  const noise = makeNoise(SIZE);
-  const TOTAL=50; let step=0;
   function tick() {
     const speed = parseInt(document.getElementById('diffSpeed').value);
-    step += speed * 0.15; if (step > TOTAL) step = TOTAL;
-    const t = step/TOTAL;
-    const tE = 1 - Math.pow(1-t, 2.5);
-    drawPixels(canvas, blendPixels(noise, target, tE, SIZE), SIZE);
-    const s = Math.round(step);
-    let desc='Pure noise';
-    if(s>0&&s<=10) desc='Layout & colours emerging';
-    else if(s>10&&s<=25) desc='Shapes forming';
-    else if(s>25&&s<=40) desc='Refining details';
-    else if(s>40&&s<50) desc='Final polish';
-    else if(s>=50) desc='Complete!';
-    document.getElementById('diffStepLabel').textContent = `Step ${s} / 50 \u2014 ${desc}`;
-    // Update log
-    for (const [threshold, msg] of diffLogMessages) {
-      if (s >= threshold && diffLastLogStep < threshold) {
-        log.querySelectorAll('.log-line').forEach(l => l.classList.remove('active'));
-        const line = document.createElement('div');
-        line.className = 'log-line active';
-        line.innerHTML = `<span class="log-step">[step ${threshold}]</span> ${msg}`;
-        log.appendChild(line);
-        log.scrollTop = log.scrollHeight;
-        diffLastLogStep = threshold;
-      }
-    }
-    if (step < TOTAL) diffAnim = requestAnimationFrame(tick);
+    diffState.step += speed * 0.15;
+    if (diffState.step > diffState.TOTAL) diffState.step = diffState.TOTAL;
+    diffRenderStep();
+    if (diffState.step < diffState.TOTAL) diffAnim = requestAnimationFrame(tick);
     else { diffAnim=null; document.getElementById('diffPlayBtn').disabled=false; }
   }
-  drawPixels(canvas, noise, SIZE);
   diffAnim = requestAnimationFrame(tick);
 }
 
@@ -1291,12 +1362,15 @@ const arRasterLogMessages = [
 
 const arVarLogMessages = [
   [0, 'VAR (Visual AutoRegressive): predict image at increasing resolutions, not pixel-by-pixel.'],
-  [1, 'Scale 1: 1\u00d71 \u2014 predict a single token capturing the global colour/layout of the whole image.'],
-  [2, 'Scale 2: 2\u00d72 \u2014 4 tokens generated IN PARALLEL, conditioned on the 1\u00d71 token. Rough quadrants emerge.'],
+  [1, 'Scale 1: 1\u00d71 \u2014 a single token captures the global colour/layout of the whole image.'],
+  [2, 'Scale 2: 2\u00d72 \u2014 4 tokens generated IN PARALLEL. Rough quadrants emerge.'],
   [3, 'Scale 3: 4\u00d74 \u2014 16 tokens in parallel. Major spatial structure locked in.'],
   [4, 'Scale 4: 8\u00d78 \u2014 64 tokens. Object shapes and mid-frequency detail appearing.'],
-  [5, 'Scale 5: 16\u00d716 \u2014 256 tokens. Fine detail & textures. All tokens at this scale generated simultaneously.'],
-  [6, 'Scale 6: 32\u00d732 \u2014 1,024 tokens in parallel. Full resolution. Total: only 6 autoregressive steps!'],
+  [5, 'Scale 5: 16\u00d716 \u2014 256 tokens. Fine detail & textures forming.'],
+  [6, 'Scale 6: 32\u00d732 \u2014 1,024 tokens in parallel. Shapes are clear.'],
+  [7, 'Scale 7: 64\u00d764 \u2014 4,096 tokens. High-frequency detail and textures.'],
+  [8, 'Scale 8: 128\u00d7128 \u2014 16,384 tokens. Near-photographic detail.'],
+  [9, 'Scale 9: 256\u00d7256 \u2014 Full pixel resolution! Only 9 autoregressive steps total.'],
 ];
 
 function arSetMode(mode) {
@@ -1314,7 +1388,7 @@ function arReset() {
   if (arAnim) cancelAnimationFrame(arAnim); arAnim=null;
   arLastLogIdx = -1;
   const ctx = document.getElementById('arCanvas').getContext('2d');
-  ctx.clearRect(0,0,256,256); ctx.fillStyle='#f1f5f9'; ctx.fillRect(0,0,256,256);
+  ctx.clearRect(0,0,256,256); ctx.fillStyle='#1e293b'; ctx.fillRect(0,0,256,256);
   document.getElementById('arStepLabel').textContent = 'Press Generate';
   document.getElementById('arLog').innerHTML = '<div class="log-line active"><span class="log-step">[ready]</span> Choose Raster or VAR mode, then press Generate.</div>';
   document.getElementById('arPlayBtn').disabled = false;
@@ -1350,7 +1424,7 @@ function arUpdateLog(progress, messages) {
 
 function arPlayRaster(canvas, ctx, target, SIZE) {
   const BLOCK=8, GRID=SIZE/BLOCK, TOTAL=GRID*GRID; let idx=0;
-  ctx.fillStyle='#e2e8f0'; ctx.fillRect(0,0,SIZE,SIZE);
+  ctx.fillStyle='#1e293b'; ctx.fillRect(0,0,SIZE,SIZE);
   function tick() {
     const speed=parseInt(document.getElementById('arSpeed').value);
     const steps=Math.max(1,Math.round(speed*2));
@@ -1375,8 +1449,8 @@ function arPlayRaster(canvas, ctx, target, SIZE) {
 }
 
 function arPlayVar(canvas, ctx, target, SIZE) {
-  const scales=[1,2,4,8,16,32]; let scaleIdx=0, tokenInScale=0;
-  ctx.fillStyle='#e2e8f0'; ctx.fillRect(0,0,SIZE,SIZE);
+  const scales=[1,2,4,8,16,32,64,128,256]; let scaleIdx=0, tokenInScale=0;
+  ctx.fillStyle='#1e293b'; ctx.fillRect(0,0,SIZE,SIZE);
   function tick() {
     const speed=parseInt(document.getElementById('arSpeed').value);
     if (scaleIdx>=scales.length) {
@@ -1424,7 +1498,7 @@ function hybridLogAppend(label, msg) {
 function hybridReset() {
   if (hybridAnim) cancelAnimationFrame(hybridAnim); hybridAnim=null;
   const ctx=document.getElementById('hybridCanvas').getContext('2d');
-  ctx.clearRect(0,0,256,256); ctx.fillStyle='#f1f5f9'; ctx.fillRect(0,0,256,256);
+  ctx.clearRect(0,0,256,256); ctx.fillStyle='#1e293b'; ctx.fillRect(0,0,256,256);
   document.getElementById('hybridTimeline').innerHTML='';
   document.getElementById('hybridStepLabel').textContent='Press Generate';
   document.getElementById('hybridLog').innerHTML='<div class="log-line active"><span class="log-step">[ready]</span> Transfusion: a single transformer handles BOTH text (cross-entropy) and images (diffusion MSE).</div>';
@@ -1462,7 +1536,7 @@ function hybridPlay() {
     timeline.appendChild(el); return el;
   });
 
-  ctx.fillStyle='#e2e8f0';ctx.fillRect(0,0,SIZE,SIZE);
+  ctx.fillStyle='#1e293b';ctx.fillRect(0,0,SIZE,SIZE);
   ctx.fillStyle='#94a3b8';ctx.font='14px sans-serif';ctx.textAlign='center';
   ctx.fillText('Waiting for text generation...',SIZE/2,SIZE/2);
 
@@ -1523,7 +1597,7 @@ function compareReset(){
   compareAnims.forEach(a=>cancelAnimationFrame(a)); compareAnims=[];
   ['cmpDiffCanvas','cmpArCanvas','cmpHybCanvas'].forEach(id=>{
     const c=document.getElementById(id),ctx=c.getContext('2d');
-    ctx.clearRect(0,0,192,192);ctx.fillStyle='#f1f5f9';ctx.fillRect(0,0,192,192);
+    ctx.clearRect(0,0,192,192);ctx.fillStyle='#1e293b';ctx.fillRect(0,0,192,192);
   });
   ['cmpDiffLabel','cmpArLabel','cmpHybLabel'].forEach(id=>document.getElementById(id).textContent='\u2014');
   document.getElementById('comparePlayBtn').disabled=false;
@@ -1548,7 +1622,7 @@ function comparePlay(){
 
   const scales=[1,2,4,8,16,24]; let scaleIdx=0,tokenInScale=0;
   const arCanvas=document.getElementById('cmpArCanvas'),arCtx=arCanvas.getContext('2d');
-  arCtx.fillStyle='#e2e8f0';arCtx.fillRect(0,0,SIZE,SIZE);
+  arCtx.fillStyle='#1e293b';arCtx.fillRect(0,0,SIZE,SIZE);
   function arTick(){
     if(scaleIdx>=scales.length){document.getElementById('cmpArLabel').textContent=`Done (${scales.length} scales)`;return;}
     const scale=scales[scaleIdx],blockSize=SIZE/scale,totalTokens=scale*scale;
@@ -1571,7 +1645,7 @@ function comparePlay(){
   compareAnims[1]=requestAnimationFrame(arTick);
 
   const hybCanvas=document.getElementById('cmpHybCanvas'),hybCtx=hybCanvas.getContext('2d');
-  hybCtx.fillStyle='#e2e8f0';hybCtx.fillRect(0,0,SIZE,SIZE);
+  hybCtx.fillStyle='#1e293b';hybCtx.fillRect(0,0,SIZE,SIZE);
   hybCtx.fillStyle='#64748b';hybCtx.font='13px sans-serif';hybCtx.textAlign='center';
   hybCtx.fillText('Generating text...',SIZE/2,SIZE/2);
   document.getElementById('cmpHybLabel').textContent='Text tokens...';
@@ -1595,16 +1669,16 @@ function comparePlay(){
 // ═══════════════════════════════════════════════════════
 const MODELS = [
   {
-    id: 'black-forest-labs/FLUX.1-schnell',
-    name: 'FLUX.1 Schnell',
-    desc: '12B params \u00b7 1\u20134 steps \u00b7 Fastest modern model. Uses Rectified Flow + distillation so it can take huge denoising steps. Best quality-per-second ratio available.',
-    defaults: { guidance: 0, steps: 4, size: 1024 }
-  },
-  {
     id: 'stabilityai/stable-diffusion-xl-base-1.0',
     name: 'Stable Diffusion XL',
-    desc: '3.5B params \u00b7 20\u201350 steps \u00b7 The industry workhorse. Classic U-Net diffusion architecture. More steps = more control over output.',
+    desc: 'Classic diffusion \u00b7 U-Net backbone \u00b7 3.5B params \u00b7 20\u201350 steps. The standard diffusion model \u2014 uses the same architecture described in the Diffusion tab (noise \u2192 denoise with a U-Net). Needs more steps but gives you fine control over the generation process.',
     defaults: { guidance: 7.5, steps: 30, size: 1024 }
+  },
+  {
+    id: 'black-forest-labs/FLUX.1-schnell',
+    name: 'FLUX.1 Schnell',
+    desc: 'Next-gen diffusion \u00b7 Transformer backbone \u00b7 12B params \u00b7 1\u20134 steps. Replaces the U-Net with a Diffusion Transformer (DiT) and uses Rectified Flow (straight-line denoising paths) + distillation. 10\u00d7 faster than SDXL at similar quality. This is where the field is heading.',
+    defaults: { guidance: 0, steps: 4, size: 1024 }
   }
 ];
 
