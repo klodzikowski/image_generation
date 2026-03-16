@@ -326,7 +326,7 @@
     <div class="demo-area">
       <div class="demo-layout">
         <div class="demo-visual">
-          <canvas id="ganCanvas" width="256" height="256" style="width:256px;height:256px;"></canvas>
+          <canvas id="ganCanvas" width="540" height="256" style="width:540px;height:256px;"></canvas>
           <div class="step-label" id="ganStepLabel">Press Play or use &blacktriangleright; to step through training</div>
           <div class="controls" style="margin-top:0.8rem;">
             <button class="btn" id="ganPlayBtn" onclick="ganPlay()" style="background:var(--orange);color:white;">&#9654; Play</button>
@@ -364,7 +364,7 @@
     </div>
 
     <div id="ganInsightTrain" class="insight" style="border-left-color:var(--orange);background:var(--orange-light);color:#fed7aa;">
-      <strong>Training is a two-player game:</strong> Think of the early Generator as the famously botched <em>Ecce Homo</em> restoration &mdash; it tries to recreate the original but produces something hilariously wrong. The Discriminator easily spots the fake. But round after round, the Generator improves its forgeries while the Discriminator gets better at detecting them. Eventually the Generator produces images so realistic that even the Discriminator can't tell. Then: <strong>discard the Discriminator, ship the Generator.</strong>
+      <strong>Training is a two-player game:</strong> Think of the early Generator as the famously botched <a href="https://en.wikipedia.org/wiki/Ecce_Homo_(Mart%C3%ADnez_and_Gim%C3%A9nez)" target="_blank" style="color:#fed7aa;text-decoration:underline;"><em>Ecce Homo</em> restoration</a> &mdash; it tries to recreate the original but produces something hilariously wrong. The Discriminator easily spots the fake. But round after round, the Generator improves its forgeries while the Discriminator gets better at detecting them. Eventually the Generator produces images so realistic that even the Discriminator can't tell. Then: <strong>discard the Discriminator, ship the Generator.</strong>
     </div>
 
     <div id="ganInsightInfer" class="insight" style="border-left-color:var(--orange);background:var(--orange-light);color:#fed7aa;display:none;">
@@ -1875,6 +1875,29 @@ function ganLogAppend(label, msg) {
   log.scrollTop = log.scrollHeight;
 }
 
+function ganDrawSideBySide(canvas, ctx, realImg, fakeImg, SIZE) {
+  // Draw Real (left) vs Fake (right) with labels
+  const W = canvas.width, gap = 28;
+  ctx.clearRect(0, 0, W, SIZE);
+  // Draw real image on left
+  const tmpC = document.createElement('canvas'); tmpC.width = tmpC.height = SIZE;
+  const tmpCtx = tmpC.getContext('2d');
+  const realID = new ImageData(realImg, SIZE, SIZE);
+  tmpCtx.putImageData(realID, 0, 0);
+  ctx.drawImage(tmpC, 0, 0, SIZE, SIZE);
+  // Draw fake image on right
+  const fakeID = new ImageData(fakeImg, SIZE, SIZE);
+  tmpCtx.putImageData(fakeID, 0, 0);
+  ctx.drawImage(tmpC, SIZE + gap, 0, SIZE, SIZE);
+  // Labels
+  ctx.font = 'bold 14px Inter, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#22c55e'; ctx.fillText('REAL', SIZE / 2, SIZE - 8);
+  ctx.fillStyle = '#ef4444'; ctx.fillText('FAKE (Generator)', SIZE + gap + SIZE / 2, SIZE - 8);
+  // Divider
+  ctx.fillStyle = '#475569'; ctx.font = '20px sans-serif';
+  ctx.fillText('vs', SIZE + gap / 2, SIZE / 2 + 6);
+}
+
 function ganRenderStep() {
   const { step, steps, target } = ganState;
   const SIZE = 256, canvas = document.getElementById('ganCanvas'), ctx = canvas.getContext('2d');
@@ -1882,13 +1905,18 @@ function ganRenderStep() {
   if (step < 0) {
     // Initial state
     if (ganMode === 'train') {
-      // Show pure noise (untrained generator)
+      // Show side-by-side: real face vs pure noise
+      const realImg = target;
       const noiseImg = ganMakeOutput(0, target, SIZE, 42);
-      drawPixels(canvas, noiseImg, SIZE);
-      document.getElementById('ganStepLabel').textContent = 'Epoch 0 \u2014 Untrained generator (random noise)';
+      canvas.width = SIZE * 2 + 28; canvas.height = SIZE;
+      canvas.style.width = '540px';
+      ganDrawSideBySide(canvas, ctx, realImg, noiseImg, SIZE);
+      document.getElementById('ganStepLabel').textContent = 'Epoch 0 \u2014 Discriminator compares real face vs generator noise';
       document.getElementById('ganDiscBar').style.width = '10%';
       document.getElementById('ganDiscLabel').textContent = '95% Fake \u2014 easy to spot!';
     } else {
+      canvas.width = SIZE; canvas.height = SIZE;
+      canvas.style.width = '256px';
       ctx.fillStyle = '#1e293b'; ctx.fillRect(0, 0, SIZE, SIZE);
       ctx.fillStyle = '#94a3b8'; ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('Press \u25b6 to generate samples', SIZE/2, SIZE/2);
@@ -1899,30 +1927,37 @@ function ganRenderStep() {
   } else if (step < steps.length) {
     const s = steps[step];
     if (s.type === 'd-step') {
-      // Show current generator output (quality from previous round)
-      const img = ganMakeOutput(s.quality, target, SIZE, 42);
-      drawPixels(canvas, img, SIZE);
-      document.getElementById('ganStepLabel').textContent = `Round ${s.round}/10 \u2014 Discriminator training`;
-      // Discriminator gets better at detecting fakes
+      // Side-by-side: real face vs current generator output
+      canvas.width = SIZE * 2 + 28; canvas.height = SIZE;
+      canvas.style.width = '540px';
+      const fakeImg = ganMakeOutput(s.quality, target, SIZE, 42);
+      ganDrawSideBySide(canvas, ctx, target, fakeImg, SIZE);
+      document.getElementById('ganStepLabel').textContent = `Round ${s.round}/10 \u2014 Discriminator compares real vs fake`;
       const discConf = Math.min(95, 50 + (1 - s.quality) * 45);
       document.getElementById('ganDiscBar').style.width = `${100 - discConf}%`;
       document.getElementById('ganDiscLabel').textContent = `${Math.round(discConf)}% Fake`;
     } else if (s.type === 'g-step') {
-      // Generator improves
+      // Generator output only (it's trying to improve)
+      canvas.width = SIZE; canvas.height = SIZE;
+      canvas.style.width = '256px';
       const img = ganMakeOutput(s.quality, target, SIZE, 42);
       drawPixels(canvas, img, SIZE);
       document.getElementById('ganStepLabel').textContent = `Round ${s.round}/10 \u2014 Generator improved!`;
-      // Discriminator is now less sure
       const discConf = Math.max(5, 50 - s.quality * 45);
       document.getElementById('ganDiscBar').style.width = `${100 - discConf}%`;
       document.getElementById('ganDiscLabel').textContent = s.quality >= 1 ? '50% \u2014 can\'t tell anymore!' : `${Math.round(discConf)}% Fake`;
     } else if (s.type === 'done') {
-      const img = ganMakeOutput(1.0, target, SIZE, 42);
-      drawPixels(canvas, img, SIZE);
-      document.getElementById('ganStepLabel').textContent = 'Training complete! Generator produces realistic images.';
+      // Side-by-side final comparison
+      canvas.width = SIZE * 2 + 28; canvas.height = SIZE;
+      canvas.style.width = '540px';
+      const fakeImg = ganMakeOutput(1.0, target, SIZE, 42);
+      ganDrawSideBySide(canvas, ctx, target, fakeImg, SIZE);
+      document.getElementById('ganStepLabel').textContent = 'Training complete! Generator output looks like the real thing.';
       document.getElementById('ganDiscBar').style.width = '50%';
       document.getElementById('ganDiscLabel').textContent = '50% \u2014 can\'t tell real from fake!';
     } else if (s.type === 'sample') {
+      canvas.width = SIZE; canvas.height = SIZE;
+      canvas.style.width = '256px';
       const img = ganMakeOutput(1.0, makeTargetImage('face', SIZE), SIZE, s.idx * 100);
       drawPixels(canvas, img, SIZE);
       document.getElementById('ganStepLabel').textContent = `Sample ${s.idx}/5 \u2014 random latent \u2192 Generator \u2192 image`;
@@ -1938,17 +1973,18 @@ function ganRenderStep() {
   for (let i = 0; i <= step && i < steps.length; i++) {
     const s = steps[i];
     if (s.type === 'd-step') {
-      if (s.round === 1) ganLogAppend(`D r${s.round}`, 'Discriminator sees real faces + Generator noise. Easily classifies them. Backprop updates D weights only.');
-      else if (s.round <= 3) ganLogAppend(`D r${s.round}`, `Discriminator re-trained on latest Generator output. Still catches fakes \u2014 they're blurry and blocky.`);
-      else if (s.round <= 6) ganLogAppend(`D r${s.round}`, 'Discriminator has to work harder now. Generator output has proper shapes and colours.');
-      else if (s.round <= 9) ganLogAppend(`D r${s.round}`, 'Discriminator is struggling. Fakes are nearly indistinguishable from real images.');
-      else ganLogAppend(`D r${s.round}`, 'Final D step. Discriminator accuracy is near chance level (50%).');
+      if (s.round === 1) ganLogAppend(`D r${s.round}`, 'Discriminator sees real faces + Generator noise (see canvas: REAL vs FAKE). Trivial to classify. Backprop updates Discriminator weights only.');
+      else if (s.round <= 3) ganLogAppend(`D r${s.round}`, `Discriminator re-trained on latest fakes. Still catches them easily \u2014 blocky colour patches vs real detail.`);
+      else if (s.round <= 6) ganLogAppend(`D r${s.round}`, 'Getting harder. Fake has rough face shape now, but Discriminator still spots differences in texture.');
+      else if (s.round <= 9) ganLogAppend(`D r${s.round}`, 'Discriminator is struggling. Fakes look increasingly similar to real images.');
+      else ganLogAppend(`D r${s.round}`, 'Final Discriminator step. Accuracy dropping toward 50% (coin flip).');
     } else if (s.type === 'g-step') {
-      if (s.round === 1) ganLogAppend(`G r${s.round}`, 'Generator creates fakes labelled as "real." D\'s loss is backpropagated through frozen D to update G. First improvement: vague skin-coloured blobs.');
-      else if (s.round === 2) ganLogAppend(`G r${s.round}`, 'Generator learns rough face shape. Like the <span class="log-highlight">Ecce Homo</span> restoration \u2014 hilariously wrong but getting there.');
-      else if (s.round <= 5) ganLogAppend(`G r${s.round}`, `Generator round ${s.round}: features sharpening. Eyes, nose, mouth becoming recognisable.`);
-      else if (s.round <= 8) ganLogAppend(`G r${s.round}`, `Round ${s.round}: high-frequency detail emerging. Textures, skin tone, lighting.`);
-      else ganLogAppend(`G r${s.round}`, 'Generator nearly perfect. Fine detail and micro-textures.');
+      if (s.round === 1) ganLogAppend(`G r${s.round}`, 'Generator creates fakes labelled as "real." Loss backpropagated through frozen Discriminator to update Generator. First improvement: vague colour blobs.');
+      else if (s.round === 2) ganLogAppend(`G r${s.round}`, 'Generator output: large blocky patches. Rough colour palette of a face, but no structure yet.');
+      else if (s.round <= 4) ganLogAppend(`G r${s.round}`, `Generator round ${s.round}: blocks getting smaller. Vague oval shape emerging \u2014 heading in the right direction.`);
+      else if (s.round <= 6) ganLogAppend(`G r${s.round}`, `Round ${s.round}: face-like shape becoming clear. Colour regions starting to match skin, hair, background.`);
+      else if (s.round <= 8) ganLogAppend(`G r${s.round}`, `Round ${s.round}: fine detail emerging. Individual features (eyes, nose) becoming visible.`);
+      else ganLogAppend(`G r${s.round}`, 'Generator nearly perfect. Detailed textures and realistic colouring.');
     } else if (s.type === 'done') {
       ganLogAppend('done', 'Training complete! Discard Discriminator. Ship Generator for inference.');
     } else if (s.type === 'sample') {
